@@ -1,0 +1,145 @@
+2025-04-29 20:42:00,544 - ERROR - ❌ Ошибка при синхронизации: [Errno 2] No such file or directory: 'config.yaml'
+Traceback (most recent call last):
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/sync_core.py", line 17, in start_sync
+    config = load_config()
+             ^^^^^^^^^^^^^
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/utils.py", line 13, in load_config
+    with open("config.yaml", "r", encoding="utf-8") as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'config.yaml'
+2025-04-29 20:44:23,149 - INFO - Начинается синхронизация. dry_run=False
+2025-04-29 20:44:23,149 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 20:44:23,149 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 20:44:23,149 - INFO - ✅ Синхронизация завершена в 2025-04-29 20:44:23
+2025-04-29 20:45:02,015 - ERROR - ❌ Ошибка при синхронизации: [Errno 2] No such file or directory: 'path/to/config.yaml'
+Traceback (most recent call last):
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/sync_core.py", line 17, in start_sync
+    config = load_config()
+             ^^^^^^^^^^^^^
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/utils.py", line 13, in load_config
+    with open("path/to/config.yaml", "r", encoding="utf-8") as f:  # Укажи путь к файлу
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'path/to/config.yaml'
+2025-04-29 20:45:07,417 - INFO - Начинается синхронизация. dry_run=False
+2025-04-29 20:45:07,417 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 20:45:07,417 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 20:45:07,417 - INFO - ✅ Синхронизация завершена в 2025-04-29 20:45:07
+2025-04-29 21:20:00,517 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 21:20:00,517 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 21:20:00,517 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 21:20:00,517 - INFO - ✅ Синхронизация завершена в 2025-04-29 21:20:00
+2025-04-29 21:20:03,586 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 21:20:03,586 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 21:20:03,586 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 21:20:03,586 - INFO - ✅ Синхронизация завершена в 2025-04-29 21:20:03
+2025-04-29 21:20:17,704 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=True
+2025-04-29 21:20:17,704 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 21:20:17,704 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 21:20:17,704 - INFO - ✅ Синхронизация завершена в 2025-04-29 21:20:17
+2025-04-29 21:20:20,496 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 21:20:20,496 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 21:20:20,496 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 21:20:20,496 - INFO - ✅ Синхронизация завершена в 2025-04-29 21:20:20
+2025-04-29 21:38:02,219 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 21:38:02,219 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 21:38:02,219 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 21:38:02,219 - INFO - ✅ Синхронизация завершена в 2025-04-29 21:38:02
+2025-04-29 21:38:02,219 - ERROR - ❌ Ошибка при синхронизации: Нет базы данных
+Traceback (most recent call last):
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/sync_core.py", line 87, in start_sync
+    report_path = generate_html_report(output_path=report_path)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/reporter.py", line 10, in generate_html_report
+    raise FileNotFoundError("Нет базы данных")
+FileNotFoundError: Нет базы данных
+2025-04-29 22:18:53,463 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 22:18:53,463 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 22:18:53,463 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 22:18:53,463 - INFO - ✅ Синхронизация завершена в 2025-04-29 22:18:53
+2025-04-29 22:38:00,418 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 22:38:00,418 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 22:38:00,418 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 22:38:00,418 - INFO - ✅ Синхронизация завершена в 2025-04-29 22:38:00
+2025-04-29 22:38:27,229 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 22:38:27,229 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 22:38:27,229 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 22:38:27,229 - INFO - ✅ Синхронизация завершена в 2025-04-29 22:38:27
+2025-04-29 22:38:27,229 - WARNING - Путь для HTML отчёта не задан. Отчёт не будет сгенерирован.
+2025-04-29 22:51:37,731 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 22:51:37,731 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 22:51:37,731 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 22:51:37,731 - INFO - ✅ Синхронизация завершена в 2025-04-29 22:51:37
+2025-04-29 22:54:08,660 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 22:54:08,661 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 22:54:08,661 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 22:54:08,661 - INFO - ✅ Синхронизация завершена в 2025-04-29 22:54:08
+2025-04-29 22:54:08,661 - WARNING - Путь для HTML отчёта не задан. Отчёт не будет сгенерирован.
+2025-04-29 22:54:12,169 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=True
+2025-04-29 22:54:12,169 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 22:54:12,169 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 22:54:12,169 - INFO - ✅ Синхронизация завершена в 2025-04-29 22:54:12
+2025-04-29 22:54:12,169 - WARNING - Путь для HTML отчёта не задан. Отчёт не будет сгенерирован.
+2025-04-29 22:57:26,289 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=True
+2025-04-29 22:57:26,289 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 22:57:26,289 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 22:57:26,289 - INFO - ✅ Синхронизация завершена в 2025-04-29 22:57:26
+2025-04-29 22:57:26,289 - WARNING - Путь для HTML отчёта не задан. Отчёт не будет сгенерирован.
+2025-04-29 23:03:44,653 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 23:03:44,653 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:03:44,653 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:03:44,653 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:03:44
+2025-04-29 23:04:09,225 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 23:04:09,225 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:04:09,225 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:04:09,225 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:04:09
+2025-04-29 23:04:57,513 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 23:04:57,513 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:04:57,513 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:04:57,513 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:04:57
+2025-04-29 23:04:59,282 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=True
+2025-04-29 23:04:59,282 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:04:59,282 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:04:59,283 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:04:59
+2025-04-29 23:05:45,806 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 23:05:45,806 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:05:45,806 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:05:45,806 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:05:45
+2025-04-29 23:06:29,703 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 23:06:29,703 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:06:29,703 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:06:29,703 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:06:29
+2025-04-29 23:06:32,755 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 23:06:32,755 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:06:32,755 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:06:32,755 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:06:32
+2025-04-29 23:09:13,676 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 23:09:13,677 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:09:13,677 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:09:13,677 - ERROR - ❌ Ошибка при синхронизации: name 'datetime' is not defined
+Traceback (most recent call last):
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/sync_core.py", line 67, in start_sync
+    msg = f"✅ Синхронизация завершена в {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                          ^^^^^^^^
+NameError: name 'datetime' is not defined. Did you forget to import 'datetime'
+2025-04-29 23:09:16,860 - INFO - Начинается синхронизация. dry_run=True, skip_telegram=False
+2025-04-29 23:09:16,861 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:09:16,861 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:09:16,861 - ERROR - ❌ Ошибка при синхронизации: name 'datetime' is not defined
+Traceback (most recent call last):
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/sync_core.py", line 67, in start_sync
+    msg = f"✅ Синхронизация завершена в {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                          ^^^^^^^^
+NameError: name 'datetime' is not defined. Did you forget to import 'datetime'
+2025-04-29 23:09:22,245 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 23:09:22,245 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:09:22,245 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:09:22,246 - ERROR - ❌ Ошибка при синхронизации: name 'datetime' is not defined
+Traceback (most recent call last):
+  File "/home/zidan/PycharmProjects/AvtoInfoSys/app/sync_core.py", line 67, in start_sync
+    msg = f"✅ Синхронизация завершена в {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                          ^^^^^^^^
+NameError: name 'datetime' is not defined. Did you forget to import 'datetime'
+2025-04-29 23:10:11,801 - INFO - Начинается синхронизация. dry_run=False, skip_telegram=False
+2025-04-29 23:10:11,802 - WARNING - Источник не найден: /mnt/shared/101
+2025-04-29 23:10:11,802 - WARNING - Источник не найден: /mnt/shared/102
+2025-04-29 23:10:11,802 - INFO - ✅ Синхронизация завершена в 2025-04-29 23:10:11
