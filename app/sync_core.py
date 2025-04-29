@@ -74,6 +74,7 @@ def start_sync(dry_run=False, skip_telegram=False, report_html=False, report_pat
             else:
                 logger.warning("Путь для HTML отчёта не задан. Отчёт не будет сгенерирован.")
 
+
         if not skip_telegram:
             send_telegram_message(msg)
 
