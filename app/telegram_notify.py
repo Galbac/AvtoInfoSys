@@ -1,18 +1,18 @@
-#telegram_notify
-import os
 import json
+import os
 import requests
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-from app.config_loader import load_config
+from dotenv import load_dotenv
 from app.logger import get_logger
 
+load_dotenv()
 logger = get_logger()
-config = load_config()
-BOT_TOKEN = config.get("BOT_TOKEN")
-USERS_FILE = "data/users.json"
-_lock = Lock()
 
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+USERS_FILE = Path("data/users.json")
+_lock = Lock()
 
 def is_internet_available(url="https://api.telegram.org", timeout=3):
     try:
@@ -21,73 +21,65 @@ def is_internet_available(url="https://api.telegram.org", timeout=3):
     except requests.RequestException:
         return False
 
-
 def load_user_ids():
-    if not os.path.exists(USERS_FILE):
+    if not USERS_FILE.exists():
         return []
-
     try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
+        with USERS_FILE.open("r", encoding="utf-8") as f:
             data = json.load(f)
-            if isinstance(data, list):
-                return data
+            return data if isinstance(data, list) else []
     except Exception as e:
         logger.error(f"❌ Ошибка при чтении {USERS_FILE}: {e}")
-    return []
-
+        return []
 
 def save_user_ids(user_ids):
     try:
         with _lock:
-            with open(USERS_FILE, "w", encoding="utf-8") as f:
+            USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with USERS_FILE.open("w", encoding="utf-8") as f:
                 json.dump(user_ids, f, ensure_ascii=False, indent=2)
     except Exception as e:
         logger.error(f"❌ Ошибка при сохранении {USERS_FILE}: {e}")
 
+def send_to_user(user_id, content, user_ids, is_file=False):
+    if not BOT_TOKEN:
+        logger.error("❌ BOT_TOKEN не найден в .env файле.")
+        return
 
-def send_message_to_user(user_id, message_text, user_ids):
-    try:
-        response = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-            data={"chat_id": user_id, "text": message_text}
-        )
-        if response.ok:
-            logger.info(f"📤 Сообщение отправлено пользователю {user_id}")
-        else:
-            logger.error(f"❌ Ошибка при отправке пользователю {user_id}: {response.status_code} {response.text}")
-            if response.status_code == 403:
-                with _lock:
-                    if user_id in user_ids:
-                        user_ids.remove(user_id)
-                        logger.warning(f"🚫 Пользователь {user_id} удалён из списка (заблокировал бота)")
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке пользователю {user_id}: {e}")
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument" if is_file else f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    data = {"chat_id": user_id}
+    files = None
 
+    if is_file:
+        try:
+            with open(content, "rb") as file:
+                files = {"document": file}
+                response = requests.post(url, data=data, files=files)
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке файла пользователю {user_id}: {e}")
+            return
+    else:
+        data["text"] = content
+        try:
+            response = requests.post(url, data=data)
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке сообщения пользователю {user_id}: {e}")
+            return
 
-def send_file_to_user(user_id, file_path, user_ids):
-    try:
-        with open(file_path, "rb") as file:
-            response = requests.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument",
-                data={"chat_id": user_id},
-                files={"document": file}
-            )
-        if response.ok:
-            logger.info(f"📤 Отчет отправлен пользователю {user_id}")
-        else:
-            logger.error(f"❌ Ошибка при отправке отчета пользователю {user_id}: {response.status_code} {response.text}")
-            if response.status_code == 403:
-                with _lock:
-                    if user_id in user_ids:
-                        user_ids.remove(user_id)
-                        logger.warning(f"🚫 Пользователь {user_id} удалён из списка (заблокировал бота)")
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке отчета пользователю {user_id}: {e}")
-
+    if response.ok:
+        msg = "Отчет" if is_file else "Сообщение"
+        logger.info(f"📤 {msg} отправлен пользователю {user_id}")
+    else:
+        logger.error(f"❌ Ошибка при отправке пользователю {user_id}: {response.status_code} {response.text}")
+        if response.status_code == 403:
+            with _lock:
+                if user_id in user_ids:
+                    user_ids.remove(user_id)
+                    logger.warning(f"🚫 Пользователь {user_id} удалён из списка (заблокировал бота)")
 
 def send_summary_to_telegram(all_results, all_stats, dry_run=False):
     if not BOT_TOKEN:
-        logger.error("❌ BOT_TOKEN не задан в config.yaml.")
+        logger.error("❌ BOT_TOKEN не найден в .env файле.")
         return
 
     if not is_internet_available():
@@ -99,24 +91,20 @@ def send_summary_to_telegram(all_results, all_stats, dry_run=False):
         logger.warning("⚠️ Нет пользователей для отправки сообщений.")
         return
 
-    message = "📁 Синхронизация завершена."
-    if dry_run:
-        message = "🧪 [Dry Run]\n" + message
-
+    message = "🧪 [Dry Run]\n📁 Синхронизация завершена." if dry_run else "📁 Синхронизация завершена."
     logger.info(f"📤 Отправка итогового сообщения ({len(user_ids)} пользователей)...")
 
     user_ids_copy = user_ids.copy()
     max_threads = min(len(user_ids_copy), 30)
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         for user_id in user_ids_copy:
-            executor.submit(send_message_to_user, user_id, message, user_ids)
+            executor.submit(send_to_user, user_id, message, user_ids, is_file=False)
 
     save_user_ids(user_ids)
 
-
 def send_report_file_to_telegram(report_path):
     if not BOT_TOKEN:
-        logger.error("❌ BOT_TOKEN не задан в config.yaml.")
+        logger.error("❌ BOT_TOKEN не найден в .env файле.")
         return
 
     if not is_internet_available():
@@ -134,6 +122,6 @@ def send_report_file_to_telegram(report_path):
     max_threads = min(len(user_ids_copy), 30)
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         for user_id in user_ids_copy:
-            executor.submit(send_file_to_user, user_id, report_path, user_ids)
+            executor.submit(send_to_user, user_id, report_path, user_ids, is_file=True)
 
     save_user_ids(user_ids)

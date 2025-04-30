@@ -1,41 +1,42 @@
-#bot.py
-import json
+
+# bot.py (улучшенная версия)
 import os
+import json
+import asyncio
+from pathlib import Path
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import Message
-import asyncio
 
-# Загрузка переменных окружения
+DATA_DIR = Path("data")
+USERS_FILE = DATA_DIR / "users.json"
+
 load_dotenv()
-API_TOKEN = os.getenv('BOT_TOKEN')
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-if not API_TOKEN:
-    raise ValueError("❌ API_TOKEN не задан в .env файле")
+if not BOT_TOKEN:
+    raise ValueError("❌ Переменная окружения BOT_TOKEN не найдена")
 
-# Создание бота и диспетчера
-bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
-USER_DATA_FILE = 'data/users.json'
-
-# Гарантируем наличие JSON-файла
-if not os.path.exists(USER_DATA_FILE):
-    os.makedirs(os.path.dirname(USER_DATA_FILE), exist_ok=True)
-    with open(USER_DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump([], f)
+DATA_DIR.mkdir(exist_ok=True)
+if not USERS_FILE.exists():
+    USERS_FILE.write_text("[]", encoding="utf-8")
 
 try:
-    with open(USER_DATA_FILE, 'r', encoding='utf-8') as f:
-        users = json.load(f)
-        if not isinstance(users, list):
-            raise ValueError("JSON должен быть списком пользователей")
-except (json.JSONDecodeError, ValueError):
+    users = json.loads(USERS_FILE.read_text(encoding="utf-8"))
+    if not isinstance(users, list):
+        raise ValueError("Файл users.json должен содержать список")
+except Exception:
     users = []
-    with open(USER_DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(users, f)
+    USERS_FILE.write_text("[]", encoding="utf-8")
+
+
+def save_users():
+    USERS_FILE.write_text(json.dumps(users, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 @dp.message(F.text == "/start")
@@ -43,19 +44,19 @@ async def cmd_start(message: Message):
     user_id = message.from_user.id
     if user_id not in users:
         users.append(user_id)
-        with open(USER_DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, ensure_ascii=False, indent=2)
-    await message.answer("Добро пожаловать!")
+        save_users()
+    await message.answer("Добро пожаловать! Вы добавлены в список получателей уведомлений.")
 
 
 @dp.message(F.text == "/users")
 async def list_users(message: Message):
-    text = "<b>Зарегистрированные пользователи:</b>\n" + "\n".join(str(u) for u in users)
+    text = "<b>Зарегистрированные пользователи:</b>\n" + "\n".join(str(uid) for uid in users)
     await message.answer(text)
 
 
 async def main():
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

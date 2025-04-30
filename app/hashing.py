@@ -1,23 +1,28 @@
-# app/hashing.py
-
 import hashlib
-import os
+from pathlib import Path
 
-def calculate_file_hash(file_path):
-    """Вычисление хеша файла с использованием SHA-256."""
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Файл {file_path} не найден.")
+
+def calculate_hash(file_path: Path) -> str:
+    """
+    Вычисляет SHA-256 хеш файла.
+
+    :param file_path: Путь к файлу
+    :return: Хеш строки в формате hex
+    :raises FileNotFoundError: если файл не существует
+    :raises RuntimeError: если возникает ошибка при чтении
+    """
+    if not file_path.exists():
+        raise FileNotFoundError(f"Файл не найден: {file_path}")
 
     hash_func = hashlib.sha256()
     try:
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
+        with file_path.open("rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
                 hash_func.update(chunk)
         return hash_func.hexdigest()
     except Exception as e:
-        raise RuntimeError(f"Ошибка при вычислении хеша для файла {file_path}: {e}")
+        raise RuntimeError(f"Ошибка при чтении файла {file_path}: {e}")
 
 
-# ✅ Чтобы не менять другие модули
-compute_file_hash = calculate_file_hash
-calculate_hash = calculate_file_hash
+# Совместимость со старым кодом
+compute_file_hash = calculate_hash

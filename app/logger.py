@@ -1,37 +1,26 @@
-# app/logger.py
-
 import logging
-import os
-from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+LOG_FILE = Path("logs/sync.log")
+LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-LOG_FILE = os.getenv("LOG_FILE", "logs/sync.log")
-
-
-def get_logger(name: str = "sync") -> logging.Logger:
+def get_logger(name: str = "sync_logger") -> logging.Logger:
     logger = logging.getLogger(name)
-    logger.setLevel(LOG_LEVEL)
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
 
-    # Очищаем старые обработчики, чтобы избежать дублирования логов
-    if logger.hasHandlers():
-        logger.handlers.clear()
+        formatter = logging.Formatter(
+            fmt="%(asctime)s | %(levelname)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
 
-    formatter = logging.Formatter(
-        "[%(asctime)s] [%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S"
-    )
-
-    # Консольный вывод
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    # Лог-файл
-    if LOG_FILE:
-        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
         file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
         file_handler.setFormatter(formatter)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+
         logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
 
     return logger

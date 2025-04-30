@@ -1,60 +1,54 @@
-# app/reporter.py
-
 from datetime import datetime
 from pathlib import Path
 from app.logger import get_logger
 
 logger = get_logger()
 
-def save_html_report(all_results: dict, all_stats: dict, dry_run: bool) -> str:
-    """Создаёт HTML-отчёт и возвращает путь к файлу."""
 
+def save_html_report(results_by_name: dict, stats_by_name: dict, dry_run: bool = False) -> str:
+    """
+    Сохраняет HTML-отчет о синхронизации.
+    Возвращает путь к созданному файлу.
+    """
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%H-%M-%S")
-    desktop = Path.home() / "Desktop"
-    report_dir = desktop / "отчет" / date_str
-    report_dir.mkdir(parents=True, exist_ok=True)
 
-    report_path = report_dir / f"report_{date_str}_{time_str}.html"
+    base_path = Path.home() / "Desktop" / "отчет" / date_str
+    base_path.mkdir(parents=True, exist_ok=True)
 
-    html = ["<html><head><meta charset='utf-8'><title>Отчет</title></head><body>"]
-    html.append(f"<h2>📅 Отчет за {now.strftime('%d.%m.%Y %H:%M:%S')}</h2>")
-    if dry_run:
-        html.append("<p><strong>Режим:</strong> Тестовый (ничего не копировалось)</p>")
+    report_file = base_path / f"отчет_{time_str}.html"
 
-    total_copied = 0
-    total_added = 0
-    total_modified = 0
+    html_parts = [
+        "<html><head><meta charset='utf-8'><title>Отчет</title></head><body>",
+        f"<h2>Отчет синхронизации {'(пробный запуск)' if dry_run else ''}</h2>",
+        f"<p><b>Дата:</b> {now.strftime('%Y-%m-%d %H:%M:%S')}</p><hr>"
+    ]
 
-    for name, changes in all_results.items():
-        stats = all_stats.get(name, {})
-        html.append(f"<h3>📁 {name}</h3>")
-        html.append("<ul>")
-        for change in changes:
-            html.append(f"<li>{change}</li>")
-        html.append("</ul>")
+    if not results_by_name:
+        html_parts.append("<p>Изменений не обнаружено.</p>")
+    else:
+        for name, files in results_by_name.items():
+            stats = stats_by_name.get(name, {})
+            html_parts.append(f"<h3>{name}</h3>")
+            html_parts.append("<ul>")
+            for file in files:
+                html_parts.append(f"<li>{file}</li>")
+            html_parts.append("</ul>")
 
-        html.append("<ul>")
-        html.append(f"<li>Добавлено: {stats.get('added', 0)}</li>")
-        html.append(f"<li>Изменено: {stats.get('modified', 0)}</li>")
-        html.append(f"<li>Скопировано: {stats.get('copied', 0)}</li>")
-        html.append("</ul>")
+            summary = (
+                f"Добавлено: {stats.get('added', 0)} | "
+                f"Изменено: {stats.get('modified', 0)} | "
+                f"Скопировано: {stats.get('copied', 0)}"
+            )
+            html_parts.append(f"<p><b>{summary}</b></p><hr>")
 
-        total_copied += stats.get("copied", 0)
-        total_added += stats.get("added", 0)
-        total_modified += stats.get("modified", 0)
+    html_parts.append("</body></html>")
 
-    html.append("<hr>")
-    html.append("<h3>📊 Общий итог</h3>")
-    html.append("<ul>")
-    html.append(f"<li>Всего добавлено: {total_added}</li>")
-    html.append(f"<li>Всего изменено: {total_modified}</li>")
-    html.append(f"<li>Всего скопировано: {total_copied}</li>")
-    html.append("</ul>")
-
-    html.append("</body></html>")
-
-    report_path.write_text("\n".join(html), encoding="utf-8")
-    logger.info(f"📝 HTML-отчет сохранён: {report_path}")
-    return str(report_path)
+    try:
+        report_file.write_text("\n".join(html_parts), encoding="utf-8")
+        logger.info(f"✅ HTML-отчет сохранен: {report_file}")
+        return str(report_file)
+    except Exception as e:
+        logger.error(f"❌ Не удалось сохранить отчет: {e}")
+        raise

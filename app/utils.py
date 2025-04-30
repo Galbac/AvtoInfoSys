@@ -1,5 +1,3 @@
-# app/utils.py
-
 import json
 import os
 import yaml
@@ -8,52 +6,53 @@ from pathlib import Path
 
 load_dotenv()
 
-RECIPIENTS_FILE = "users.json"
+BASE_DIR = Path(__file__).resolve().parent.parent
+RECIPIENTS_FILE = BASE_DIR / "users.json"
 
 
-def load_config():
+def load_config(config_path: str = "") -> dict:
     """
-    Загружает конфигурацию из YAML файла.
-    Ищет сначала в корне проекта, потом в папке ./config.
+    Загружает конфигурацию из YAML-файла.
+    Сначала ищет по переданному пути, затем — в стандартных местах.
     """
-    base_dir = Path(__file__).resolve().parent.parent  # корень проекта
-    possible_paths = [
-        base_dir / "config.yaml",
-        base_dir / "config" / "config.yaml"
+    search_paths = [Path(config_path)] if config_path else [
+        BASE_DIR / "config.yaml",
+        BASE_DIR / "config" / "config.yaml"
     ]
 
-    for config_path in possible_paths:
-        if config_path.exists():
+    for path in search_paths:
+        if path.exists():
             try:
-                with config_path.open("r", encoding="utf-8") as f:
-                    return yaml.safe_load(f)
+                with path.open("r", encoding="utf-8") as f:
+                    return yaml.safe_load(f) or {}
             except yaml.YAMLError as e:
-                print(f"Ошибка при разборе YAML: {e}")
+                print(f"❌ Ошибка при разборе YAML: {e}")
                 return {}
 
-    print("❌ Ошибка: config.yaml не найден.")
+    print("❌ Конфигурационный файл config.yaml не найден.")
     return {}
 
 
-def load_recipients():
-    """Загружает список получателей из файла."""
-    if not os.path.exists(RECIPIENTS_FILE):
+def load_recipients() -> list[int]:
+    """Загружает список Telegram ID получателей."""
+    if not RECIPIENTS_FILE.exists():
         return []
     try:
-        with open(RECIPIENTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with RECIPIENTS_FILE.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
     except json.JSONDecodeError as e:
-        print(f"Ошибка при чтении списка получателей: {e}")
+        print(f"❌ Ошибка при чтении users.json: {e}")
         return []
 
 
-def save_recipient(user_id: int):
-    """Сохраняет нового получателя в файл, если его ещё нет в списке."""
+def save_recipient(user_id: int) -> None:
+    """Добавляет Telegram ID получателя в список, если его ещё нет."""
     recipients = load_recipients()
     if user_id not in recipients:
         recipients.append(user_id)
         try:
-            with open(RECIPIENTS_FILE, "w", encoding="utf-8") as f:
+            with RECIPIENTS_FILE.open("w", encoding="utf-8") as f:
                 json.dump(recipients, f, ensure_ascii=False, indent=2)
         except IOError as e:
-            print(f"Ошибка при сохранении получателя: {e}")
+            print(f"❌ Ошибка при сохранении в users.json: {e}")
