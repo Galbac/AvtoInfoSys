@@ -1,27 +1,54 @@
+#logger.py
 import logging
+from logging.handlers import RotatingFileHandler
 import os
+import json
+from dotenv import load_dotenv
 
-def get_logger():
-    log_dir = os.path.join(os.path.dirname(__file__), '..', 'logs')
-    os.makedirs(log_dir, exist_ok=True)
-    log_path = os.path.join(log_dir, 'app.log')
+# Загрузка переменных окружения
+load_dotenv()
 
-    logger = logging.getLogger("sync_logger")
-    logger.setLevel(logging.INFO)
+LOG_FILE = os.getenv("LOG_FILE", "logs/sync.log")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
-    if logger.hasHandlers():
-        logger.handlers.clear()
+# Создание директории для логов
+LOG_DIR = os.path.dirname(LOG_FILE)
+if LOG_DIR and not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
-    file_handler = logging.FileHandler(log_path)
-    file_handler.setLevel(logging.INFO)
-    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(file_formatter)
+# Кастомный JSON-форматтер
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "name": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "funcName": record.funcName,
+            "lineNo": record.lineno,
+        }
+        return json.dumps(log_record, ensure_ascii=False)
 
+def get_logger(name: str = "sync_logger") -> logging.Logger:
+    logger = logging.getLogger(name)
+
+    if logger.handlers:
+        return logger
+
+    logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+
+    # JSON форматтер
+    formatter = JsonFormatter()
+
+    # Консоль
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(file_formatter)
-
-    logger.addHandler(file_handler)
+    console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+
+    # Файл с ротацией
+    file_handler = RotatingFileHandler(LOG_FILE, maxBytes=1_000_000, backupCount=5, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
     return logger

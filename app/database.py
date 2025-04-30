@@ -1,6 +1,7 @@
+#database.py
 import json
-from pathlib import Path
 
+from pathlib import Path
 
 DB_FILE = Path("synced_db.json")
 
@@ -20,7 +21,6 @@ def save_file_record(ip, filename, filehash):
             db = json.load(f)
 
     # Отложенный импорт logger
-    from app.sync_core import logger
 
     db.setdefault(ip, {})[filename] = filehash
     with open(DB_FILE, "w") as f:

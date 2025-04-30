@@ -1,5 +1,8 @@
+#cli.py
 import argparse
+
 from app.sync_core import start_sync
+
 
 def run_cli():
     parser = argparse.ArgumentParser(description="Синхронизация файлов по сети.")

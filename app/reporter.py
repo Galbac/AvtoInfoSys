@@ -1,7 +1,9 @@
+#reporter.py
 import json
 from pathlib import Path
 
 from app.database import DB_FILE
+
 
 def generate_html_report(output_path="report.html"):
     # Проверяем, существует ли база данных

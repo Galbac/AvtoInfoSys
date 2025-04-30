@@ -1,6 +1,5 @@
-# config.yaml
-
-destination_root: "./synced"  # Путь на сервере, куда будут копироваться файлы
+#config.yaml
+destination_root: "./synced"
 shared_folders:
-  "192.168.0.101": "/mnt/shared/101"  # Путь на сервере для первой машины
-  "192.168.0.102": "/mnt/shared/102"  # Путь для второй машины
+  "Abakarov_m": "\\\\Abakarov_m\\РАБОТА"
+  'Israpilov_m': "\\\\desktop-hshsuuu\\Работа"
