@@ -9,6 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 from aiogram.client.bot import DefaultBotProperties
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
 
@@ -20,21 +21,32 @@ dp = Dispatcher(storage=MemoryStorage())
 router = Router()
 dp.include_router(router)
 
-RECIPIENTS_FILE = "recipients.json"
+RECIPIENTS_FILE = "users.json"
+
 
 def load_config():
-    """Загружает конфигурацию из YAML файла."""
-    try:
-        # Указываем абсолютный путь к файлу config.yaml
-        config_path = r"D:\AvtoInfoSys\config.yaml"
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        print("Ошибка: config.yaml не найден.")
-        return {}
-    except yaml.YAMLError as e:
-        print(f"Ошибка при загрузке YAML файла: {e}")
-        return {}
+    """
+    Загружает конфигурацию из YAML файла.
+    Ищет сначала в корне проекта, потом в папке ./config.
+    """
+    base_dir = Path(__file__).resolve().parent.parent  # корень проекта
+    possible_paths = [
+        base_dir / "config.yaml",
+        base_dir / "config" / "config.yaml"
+    ]
+
+    for config_path in possible_paths:
+        if config_path.exists():
+            try:
+                with config_path.open("r", encoding="utf-8") as f:
+                    return yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                print(f"Ошибка при разборе YAML: {e}")
+                return {}
+
+    print("❌ Ошибка: config.yaml не найден.")
+    return {}
+
 
 def load_recipients():
     """Загружает список получателей из файла."""
@@ -46,6 +58,7 @@ def load_recipients():
     except json.JSONDecodeError as e:
         print(f"Ошибка при чтении списка получателей: {e}")
         return []
+
 
 def save_recipient(user_id: int):
     """Сохраняет нового получателя в файл, если его ещё нет в списке."""
@@ -83,4 +96,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

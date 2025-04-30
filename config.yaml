@@ -1,5 +1,6 @@
 #config.yaml
 destination_root: "./synced"
 shared_folders:
-  "Abakarov_m": "\\\\Abakarov_m\\РАБОТА"
-  'Israpilov_m': "\\\\desktop-hshsuuu\\Работа"
+  "Zidan": "\\\\KOMP\\Users\\Zidan\\OOP"
+#  "Abakarov_m": "\\\\Abakarov_m\\РАБОТА"
+#  'Israpilov_m': "\\\\desktop-hshsuuu\\Работа"
