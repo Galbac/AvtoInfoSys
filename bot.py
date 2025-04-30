@@ -19,17 +19,22 @@ bot = Bot(
 dp = Dispatcher()
 
 def load_users():
-    if os.path.exists(USERS_FILE):
+    """Загружает список пользователей из файла JSON, если файл поврежден, возвращает пустой список."""
+    try:
         with open(USERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return []
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
 
 def save_user(user_id):
+    """Добавляет пользователя в файл, если его там нет."""
     users = load_users()
+
     if user_id not in users:
         users.append(user_id)
         with open(USERS_FILE, "w", encoding="utf-8") as f:
-            json.dump(users, f)
+            json.dump(users, f, indent=4, ensure_ascii=False)  # Форматирование для удобства чтения.
         print(f"✅ Пользователь {user_id} добавлен.")
     else:
         print(f"ℹ️ Пользователь {user_id} уже есть.")
