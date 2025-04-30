@@ -1,29 +1,43 @@
-#reporter.py
-import json
+# app/reporter.py
+
+import os
+from datetime import datetime
 from pathlib import Path
 
-from app.database import DB_FILE
+def generate_html_report(results: dict, dry_run: bool = False) -> str:
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H-%M-%S")
+    filename = f"report_{date_str}_{time_str}.html"
 
+    # Путь к рабочему столу и папке Отчет
+    desktop_path = Path.home() / "Desktop"
+    report_folder = desktop_path / "Отчет" / date_str
+    report_folder.mkdir(parents=True, exist_ok=True)
 
-def generate_html_report(output_path="report.html"):
-    # Проверяем, существует ли база данных
-    if not DB_FILE.exists():
-        raise FileNotFoundError("Нет базы данных")
+    report_file = report_folder / filename
 
-    # Загружаем данные из базы
-    with open(DB_FILE) as f:
-        db = json.load(f)
+    with open(report_file, "w", encoding="utf-8") as f:
+        f.write("<html><head><meta charset='utf-8'><title>Отчет</title></head><body>")
+        f.write(f"<h1>Отчет синхронизации от {now.strftime('%Y-%m-%d %H:%M:%S')}</h1>")
 
-    # Строим HTML-отчёт
-    html = "<html><body><h1>Синхронизированные файлы</h1><ul>"
-    for ip, files in db.items():
-        for fname in files:
-            html += f"<li>{ip}: {fname}</li>"
-    html += "</ul></body></html>"
+        if dry_run:
+            f.write("<p><strong>Режим: Dry-run (только проверка, без копирования)</strong></p>")
 
-    # Сохраняем в файл по заданному пути
-    output_path = Path(output_path)
-    with open(output_path, "w") as rep:
-        rep.write(html)
+        total_changes = sum(len(files) for files in results.values())
 
-    return str(output_path)  # Возвращаем путь к сохранённому отчёту
+        if total_changes == 0:
+            f.write("<p><strong>Изменений не обнаружено.</strong></p>")
+        else:
+            for network_name, files in results.items():
+                if not files:
+                    continue
+                f.write(f"<h2>Локальная сеть: {network_name}</h2>")
+                f.write("<ul>")
+                for file_path in files:
+                    f.write(f"<li>{file_path}</li>")
+                f.write("</ul>")
+
+        f.write("</body></html>")
+
+    return str(report_file)

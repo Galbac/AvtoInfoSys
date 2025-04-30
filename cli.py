@@ -1,42 +1,15 @@
-#cli.py
-import argparse
+# cli.py
 
+import argparse
 from app.sync_core import start_sync
 
-
-def run_cli():
-    parser = argparse.ArgumentParser(description="Синхронизация файлов по сети.")
-
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Показать, что будет сделано, но не копировать файлы."
-    )
-    parser.add_argument(
-        "--skip-telegram",
-        action="store_true",
-        help="Не отправлять уведомления в Telegram"
-    )
-    parser.add_argument(
-        "--report-html",
-        action="store_true",
-        help="Сгенерировать HTML-отчёт после синхронизации"
-    )
-    parser.add_argument(
-        "--report-path",
-        default="report.html",
-        help="Путь для сохранения HTML-отчёта"
-    )
-
+def main():
+    parser = argparse.ArgumentParser(description="Синхронизация сетевых папок")
+    parser.add_argument("--config", help="Путь к конфигурационному файлу YAML", default="config.yaml")
+    parser.add_argument("--dry-run", action="store_true", help="Запуск без копирования файлов")
     args = parser.parse_args()
 
-    start_sync(
-        dry_run=args.dry_run,
-        skip_telegram=args.skip_telegram,
-        generate_html=args.report_html,
-        report_path=args.report_path
-    )
-
+    start_sync(config_path=args.config, dry_run=args.dry_run)
 
 if __name__ == "__main__":
-    run_cli()
+    main()

@@ -1,27 +1,20 @@
-#database.py
 import json
+import os
+from typing import Dict
 
-from pathlib import Path
+DB_FILE = "synced_db.json"
 
-DB_FILE = Path("synced_db.json")
+def load_state() -> Dict[str, Dict[str, str]]:
+    """Загрузить состояние синхронизированных файлов из JSON."""
+    if not os.path.exists(DB_FILE):
+        return {}
+    try:
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
-
-def is_file_already_synced(ip, filename, filehash):
-    if not DB_FILE.exists():
-        return False
-    with open(DB_FILE) as f:
-        db = json.load(f)
-    return db.get(ip, {}).get(filename) == filehash
-
-
-def save_file_record(ip, filename, filehash):
-    db = {}
-    if DB_FILE.exists():
-        with open(DB_FILE) as f:
-            db = json.load(f)
-
-    # Отложенный импорт logger
-
-    db.setdefault(ip, {})[filename] = filehash
-    with open(DB_FILE, "w") as f:
-        json.dump(db, f, indent=2)
+def save_state(data: Dict[str, Dict[str, str]]):
+    """Сохранить состояние синхронизированных файлов в JSON."""
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)

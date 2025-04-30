@@ -1,6 +1,6 @@
-#hashing.py
-import hashlib
+# app/hashing.py
 
+import hashlib
 import os
 
 def calculate_file_hash(file_path):
@@ -16,3 +16,7 @@ def calculate_file_hash(file_path):
         return hash_func.hexdigest()
     except Exception as e:
         raise RuntimeError(f"Ошибка при вычислении хеша для файла {file_path}: {e}")
+
+
+# ✅ Чтобы не менять другие модули
+compute_file_hash = calculate_file_hash

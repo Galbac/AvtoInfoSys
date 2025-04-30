@@ -1,61 +1,28 @@
-# telegram_notify.py
 import os
-import json
-from aiogram import Bot
-from aiogram.types import FSInputFile
-from dotenv import load_dotenv
+import requests
+from app.logger import get_logger
 
-load_dotenv()
+logger = get_logger()
 
-USERS_FILE = "users.json"  # файл, где хранятся chat_id пользователей
+def send_report_file_to_telegram(file_path: str):
+    bot_token = os.getenv("BOT_TOKEN")
+    chat_id = os.getenv("ADMIN_CHAT_ID")
 
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        return []
-    with open(USERS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-async def send_telegram_message(message: str):
-    token = os.getenv("BOT_TOKEN")
-    if not token:
-        print("Telegram bot token not found.")
+    if not bot_token or not chat_id:
+        logger.error("Ошибка при отправке отчета в Telegram: отсутствует BOT_TOKEN или ADMIN_CHAT_ID в .env.")
         return
 
-    users = load_users()
-    if not users:
-        print("Нет зарегистрированных пользователей.")
-        return
+    url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
 
-    bot = Bot(token=token)
     try:
-        for chat_id in users:
-            try:
-                await bot.send_message(chat_id=chat_id, text=message)
-                print(f"✅ Сообщение отправлено: {chat_id}")
-            except Exception as e:
-                print(f"⚠️ Ошибка при отправке {chat_id}: {e}")
-    finally:
-        await bot.session.close()
+        with open(file_path, "rb") as f:
+            files = {"document": f}
+            data = {"chat_id": chat_id}
+            response = requests.post(url, data=data, files=files)
 
-async def send_report_file(file_path: str):
-    token = os.getenv("BOT_TOKEN")
-    if not token:
-        print("Telegram bot token not found.")
-        return
-
-    users = load_users()
-    if not users:
-        print("Нет зарегистрированных пользователей.")
-        return
-
-    bot = Bot(token=token)
-    try:
-        file = FSInputFile(file_path, filename=os.path.basename(file_path))
-        for chat_id in users:
-            try:
-                await bot.send_document(chat_id=chat_id, document=file)
-                print(f"✅ Отчёт отправлен пользователю: {chat_id}")
-            except Exception as e:
-                print(f"⚠️ Ошибка при отправке {chat_id}: {e}")
-    finally:
-        await bot.session.close()
+        if response.status_code != 200:
+            logger.error(f"Не удалось отправить отчет в Telegram: {response.text}")
+        else:
+            logger.info("📤 Отчет отправлен в Telegram")
+    except Exception as e:
+        logger.error(f"Ошибка при отправке отчета в Telegram: {e}")

@@ -1,54 +1,37 @@
-#logger.py
+# app/logger.py
+
 import logging
-from logging.handlers import RotatingFileHandler
 import os
-import json
 from dotenv import load_dotenv
 
-# Загрузка переменных окружения
 load_dotenv()
 
-LOG_FILE = os.getenv("LOG_FILE", "logs/sync.log")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_FILE = os.getenv("LOG_FILE", "logs/sync.log")
 
-# Создание директории для логов
-LOG_DIR = os.path.dirname(LOG_FILE)
-if LOG_DIR and not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
 
-# Кастомный JSON-форматтер
-class JsonFormatter(logging.Formatter):
-    def format(self, record):
-        log_record = {
-            "timestamp": self.formatTime(record),
-            "level": record.levelname,
-            "name": record.name,
-            "message": record.getMessage(),
-            "module": record.module,
-            "funcName": record.funcName,
-            "lineNo": record.lineno,
-        }
-        return json.dumps(log_record, ensure_ascii=False)
-
-def get_logger(name: str = "sync_logger") -> logging.Logger:
+def get_logger(name: str = "sync") -> logging.Logger:
     logger = logging.getLogger(name)
+    logger.setLevel(LOG_LEVEL)
 
-    if logger.handlers:
-        return logger
+    # Очищаем старые обработчики, чтобы избежать дублирования логов
+    if logger.hasHandlers():
+        logger.handlers.clear()
 
-    logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+    formatter = logging.Formatter(
+        "[%(asctime)s] [%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S"
+    )
 
-    # JSON форматтер
-    formatter = JsonFormatter()
-
-    # Консоль
+    # Консольный вывод
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # Файл с ротацией
-    file_handler = RotatingFileHandler(LOG_FILE, maxBytes=1_000_000, backupCount=5, encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    # Лог-файл
+    if LOG_FILE:
+        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+        file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
     return logger
