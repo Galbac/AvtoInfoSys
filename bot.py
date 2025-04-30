@@ -1,20 +1,28 @@
-#bot.py
 import json
 import os
+from dotenv import load_dotenv
+from aiogram import Bot, Dispatcher, F
+from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
+from aiogram.types import Message
+import asyncio
 
-import executor
-from aiogram import Bot, Dispatcher, types
+# Загрузка переменных окружения
+load_dotenv()
+API_TOKEN = os.getenv('BOT_TOKEN')
 
+if not API_TOKEN:
+    raise ValueError("❌ API_TOKEN не задан в .env файле")
 
-API_TOKEN = 'YOUR_API_TOKEN'  # замените на ваш токен
-
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+# Создание бота и диспетчера
+bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+dp = Dispatcher()
 
 USER_DATA_FILE = 'data/users.json'
 
-# ✅ Гарантируем, что файл существует и содержит корректный JSON
+# Гарантируем наличие JSON-файла
 if not os.path.exists(USER_DATA_FILE):
+    os.makedirs(os.path.dirname(USER_DATA_FILE), exist_ok=True)
     with open(USER_DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump([], f)
 
@@ -29,8 +37,8 @@ except (json.JSONDecodeError, ValueError):
         json.dump(users, f)
 
 
-@dp.message_handler(commands=['start'])
-async def cmd_start(message: types.Message):
+@dp.message(F.text == "/start")
+async def cmd_start(message: Message):
     user_id = message.from_user.id
     if user_id not in users:
         users.append(user_id)
@@ -39,11 +47,14 @@ async def cmd_start(message: types.Message):
     await message.answer("Добро пожаловать!")
 
 
-@dp.message_handler(commands=['users'])
-async def list_users(message: types.Message):
-    text = "Зарегистрированные пользователи:\n" + "\n".join(str(u) for u in users)
+@dp.message(F.text == "/users")
+async def list_users(message: Message):
+    text = "<b>Зарегистрированные пользователи:</b>\n" + "\n".join(str(u) for u in users)
     await message.answer(text)
 
 
-if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())

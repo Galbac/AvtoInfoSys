@@ -1,43 +1,37 @@
-import os
+# config_loader.py
 import yaml
+import os
+import logging
+from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
-from app.logger import get_logger
 
-logger = get_logger()
+# Загружаем переменные из .env файла
+load_dotenv()
 
 def load_config(path="config.yaml"):
-    load_dotenv()  # ← Должен быть до чтения переменных
-
-    if not os.path.exists(path):
-        logger.error(f"Файл конфигурации {path} не найден.")
-        raise FileNotFoundError(f"Файл конфигурации {path} не найден.")
-
     with open(path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    bot_token = os.getenv("BOT_TOKEN")
-    chat_id = os.getenv("ADMIN_CHAT_ID")
+    # Подгружаем из окружения, если отсутствуют
+    config["BOT_TOKEN"] = config.get("BOT_TOKEN") or os.getenv("BOT_TOKEN")
+    config["ADMIN_CHAT_ID"] = config.get("ADMIN_CHAT_ID") or os.getenv("ADMIN_CHAT_ID")
 
-    if not bot_token or not chat_id:
-        logger.error("В .env отсутствуют настройки Telegram.")
-        raise ValueError("Отсутствуют BOT_TOKEN или ADMIN_CHAT_ID в .env.")
-
-    config["telegram"] = {
-        "bot_token": bot_token,
-        "chat_id": chat_id
-    }
-
-    folders = []
-    shared_folders = config.get("shared_folders", {})
-    destination_root = config.get("destination_root", "./synced")
-
-    for name, source in shared_folders.items():
-        destination = os.path.join(destination_root, name)
-        folders.append({
-            "name": name,
-            "source": source,
-            "destination": destination
-        })
-
-    config["folders"] = folders
     return config
+
+# Логгер
+log_path = os.path.join(os.path.dirname(__file__), "..", "sync.log")
+os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
+logger = logging.getLogger("sync_logger")
+logger.setLevel(logging.INFO)
+
+formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
+
+file_handler = RotatingFileHandler(log_path, maxBytes=5 * 1024 * 1024, backupCount=2, encoding="utf-8")
+file_handler.setFormatter(formatter)
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)

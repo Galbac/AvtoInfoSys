@@ -20,3 +20,4 @@ def calculate_file_hash(file_path):
 
 # ✅ Чтобы не менять другие модули
 compute_file_hash = calculate_file_hash
+calculate_hash = calculate_file_hash
