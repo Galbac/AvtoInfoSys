@@ -1,6 +1,12 @@
 #config.yaml
-destination_root: "./synced"
-shared_folders:
-  "Zidan": "\\\\KOMP\\Users\\Zidan\\OOP"
-#  "Abakarov_m": "\\\\Abakarov_m\\РАБОТА"
-#  'Israpilov_m': "\\\\desktop-hshsuuu\\Работа"
+
+destination:
+  path: "./synced"
+
+sources:
+  - name: "Zidan"
+    path: "\\\\KOMP\\Users\\Zidan\\OOP"
+  - name: "Abakarov_m"
+    path: "\\\\Abakarov_m\\РАБОТА"
+  - name: "Israpilov_m"
+    path: "\\\\desktop-hshsuuu\\Работа"

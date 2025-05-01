@@ -11,18 +11,23 @@ def calculate_hash(file_path: Path) -> str:
     :raises FileNotFoundError: если файл не существует
     :raises RuntimeError: если возникает ошибка при чтении
     """
-    if not file_path.exists():
+    if not file_path.is_file():
         raise FileNotFoundError(f"Файл не найден: {file_path}")
 
-    hash_func = hashlib.sha256()
+    hasher = hashlib.sha256()
+
     try:
         with file_path.open("rb") as f:
-            for chunk in iter(lambda: f.read(8192), b""):
-                hash_func.update(chunk)
-        return hash_func.hexdigest()
-    except Exception as e:
-        raise RuntimeError(f"Ошибка при чтении файла {file_path}: {e}")
+            while True:
+                chunk = f.read(8192)
+                if not chunk:
+                    break
+                hasher.update(chunk)
+        return hasher.hexdigest()
+
+    except OSError as e:
+        raise RuntimeError(f"Ошибка при чтении файла '{file_path}': {e}") from e
 
 
-# Совместимость со старым кодом
+# Обратная совместимость
 compute_file_hash = calculate_hash
