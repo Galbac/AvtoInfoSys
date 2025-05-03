@@ -1,107 +1,135 @@
-from datetime import datetime
 from pathlib import Path
-from app.logger import get_logger
-
-logger = get_logger()
-
-
 from datetime import datetime
-from pathlib import Path
-from collections import Counter
-from app.logger import get_logger
-
-logger = get_logger()
+from yattag import Doc
+from typing import Dict, List, Tuple
 
 
-from datetime import datetime
-from pathlib import Path
-from collections import Counter
-from app.logger import get_logger
+def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
+                     stats_by_name: Dict[str, Dict[str, int]],
+                     report_datetime: datetime) -> Path:
+    doc, tag, text = Doc().tagtext()
 
-logger = get_logger()
+    total_added = total_modified = total_copied = 0
 
+    doc.asis("<!DOCTYPE html>")
+    with tag("html"):
+        with tag("head"):
+            doc.stag("meta", charset="utf-8")
+            with tag("title"):
+                text("Отчет синхронизации")
+            with tag("style"):
+                text("""
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 40px;
+                        background-color: #f9f9f9;
+                        color: #333;
+                    }
+                    h2 {
+                        color: #2c3e50;
+                        border-bottom: 2px solid #ccc;
+                        padding-bottom: 5px;
+                    }
+                    h3 {
+                        color: #34495e;
+                        margin-top: 30px;
+                    }
+                    p {
+                        margin: 10px 0;
+                    }
+                    ul {
+                        list-style-type: disc;
+                        margin-left: 20px;
+                    }
+                    li {
+                        margin: 5px 0;
+                    }
+                    .stats {
+                        background-color: #ecf0f1;
+                        padding: 10px;
+                        border-radius: 5px;
+                        margin-top: 10px;
+                        font-weight: bold;
+                    }
+                    .summary {
+                        background-color: #dfe6e9;
+                        padding: 15px;
+                        margin-top: 40px;
+                        border: 2px solid #b2bec3;
+                        border-radius: 8px;
+                        text-align: center;
+                        font-size: 16px;
+                    }
+                    .icon {
+                        font-size: 40px;
+                        margin-bottom: 10px;
+                    }
+                """)
 
-def save_html_report(results_by_name: dict, stats_by_name: dict, dry_run: bool = False) -> str:
-    now = datetime.now()
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H-%M-%S")
+        with tag("body"):
+            with tag("h2"):
+                text(f"Отчет синхронизации — {report_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
 
-    report_dir = Path.home() / "Desktop" / "Отчет" / date_str
-    report_dir.mkdir(parents=True, exist_ok=True)
-    report_file = report_dir / f"Отчет_{date_str}.html"
+            for name, files in results_by_name.items():
+                added = [f for f, status in files if status == "added"]
+                modified = [f for f, status in files if status == "modified"]
+                stats = stats_by_name.get(name, {"added": 0, "modified": 0, "copied": 0})
 
-    title = f"Отчет синхронизации {'(пробный запуск)' if dry_run else ''}"
-    timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
+                total_added += stats["added"]
+                total_modified += stats["modified"]
+                total_copied += stats["copied"]
 
-    html = [
-        "<!DOCTYPE html>",
-        "<html lang='ru'>",
-        "<head><meta charset='utf-8'>",
-        f"<title>{title}</title>",
-        "<style>",
-        "body { font-family: Arial, sans-serif; background: #f9f9f9; color: #333; padding: 20px; }",
-        "h2 { color: #2c3e50; }",
-        "h3 { color: #34495e; }",
-        "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }",
-        "th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }",
-        "th { background-color: #f0f0f0; }",
-        "tr:nth-child(even) { background-color: #fefefe; }",
-        ".summary { font-weight: bold; color: #2d7c32; }",
-        ".no-changes { font-style: italic; color: #888; }",
-        ".total-summary { font-weight: bold; color: #1a5276; font-size: 16px; margin-top: 30px; }",
-        "</style></head><body>",
-        f"<h2>{title}</h2>",
-        f"<p><b>Дата:</b> {timestamp}</p><hr>"
-    ]
+                with tag("h3"):
+                    text(name)
 
-    total_counter = Counter()
-
-    if not results_by_name:
-        html.append("<p class='no-changes'>Изменений не обнаружено.</p>")
-    else:
-        for name, files in results_by_name.items():
-            stats = stats_by_name.get(name, {})
-            html.append(f"<h3>{name}</h3>")
-            html.append("<table><thead><tr><th>Файл</th></tr></thead><tbody>")
-            for file in files:
-                if isinstance(file, dict):
-                    path = file.get("path", "неизвестно")
-                    status = file.get("status", "")
-                    if status == "added":
-                        status_text = "добавлено"
-                    elif status == "modified":
-                        status_text = "изменено"
-                    else:
-                        status_text = "неизвестно"
-                    html.append(f"<tr><td>{path} - {status_text}</td></tr>")
+                if added:
+                    with tag("p"):
+                        text("Добавлено:")
+                    with tag("ul"):
+                        for f in added:
+                            with tag("li"):
+                                text(f)
                 else:
-                    html.append(f"<tr><td>{file}</td></tr>")
-            html.append("</tbody></table>")
+                    with tag("p"):
+                        text("Нет добавленных файлов.")
 
-            added = stats.get('added', 0)
-            modified = stats.get('modified', 0)
-            copied = stats.get('copied', 0)
-            total_counter.update({'added': added, 'modified': modified, 'copied': copied})
+                if modified:
+                    with tag("p"):
+                        text("Изменено:")
+                    with tag("ul"):
+                        for f in modified:
+                            with tag("li"):
+                                text(f)
+                else:
+                    with tag("p"):
+                        text("Нет изменённых файлов.")
 
-            summary = f"Добавлено: <b>{added}</b> | Изменено: <b>{modified}</b> | Скопировано: <b>{copied}</b>"
-            html.append(f"<p class='summary'>{summary}</p><hr>")
+                with tag("p", klass="stats"):
+                    text(f"Добавлено: {stats['added']} | Изменено: {stats['modified']} | Скопировано: {stats['copied']}")
 
-        html.append(
-            f"<div class='total-summary'>🧾 <b>Общий итог:</b> "
-            f"Добавлено: <b>{total_counter['added']}</b> | "
-            f"Изменено: <b>{total_counter['modified']}</b> | "
-            f"Скопировано: <b>{total_counter['copied']}</b></div>"
-        )
+            # ✅ Общий итог в конце с иконкой
+            with tag("div", klass="summary"):
+                with tag("div", klass="icon"):
+                    text("📊")
+                with tag("strong"):
+                    text("Общий итог")
+                with tag("p"):
+                    text(f"Всего добавлено: {total_added}")
+                with tag("p"):
+                    text(f"Всего изменено: {total_modified}")
+                with tag("p"):
+                    text(f"Всего скопировано: {total_copied}")
 
-    html.append("</body></html>")
+    html = doc.getvalue()
 
-    try:
-        report_file.write_text("\n".join(html), encoding="utf-8")
-        logger.info(f"✅ HTML-отчет сохранен: {report_file}")
-        return str(report_file)
-    except Exception as e:
-        logger.error(f"❌ Не удалось сохранить HTML-отчет: {e}")
-        raise
+    date_str = report_datetime.strftime("%Y-%m-%d")
+    time_str = report_datetime.strftime("%H-%M-%S")
+    desktop = Path.home() / "Desktop"
+    report_dir = desktop / "Отчет" / date_str
+    report_dir.mkdir(parents=True, exist_ok=True)
 
+    filename = f"Отчет_{date_str}_{time_str}.html"
+    file_path = report_dir / filename
 
-
+    file_path.write_text(html, encoding="utf-8")
+    return file_path

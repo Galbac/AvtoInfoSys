@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from typing import Dict, List, Tuple
 
 from app.logger import get_logger
@@ -61,7 +62,8 @@ def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
             except Exception as e:
                 logger.exception(f"❌ Ошибка при обработке папки {name}: {e}")
 
-    report_path = save_html_report(all_results, all_stats, dry_run)
+    report_datetime = datetime.now()
+    report_path = save_html_report(all_results, all_stats, report_datetime)
 
     try:
         send_report_file_to_telegram(report_path)

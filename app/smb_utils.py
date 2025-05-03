@@ -10,9 +10,6 @@ logger = get_logger()
 def list_files(path: Path) -> List[Path]:
     """
     Рекурсивно возвращает список всех файлов в указанной директории.
-
-    :param path: Путь к каталогу
-    :return: Список файлов
     """
     return [f for f in path.rglob("*") if f.is_file()]
 
@@ -22,7 +19,7 @@ def sync_folder(
     source_path: str,
     dest_root: str,
     dry_run: bool = False
-) -> Tuple[List[str], Dict[str, int]]:
+) -> Tuple[List[Tuple[str, str]], Dict[str, int]]:
     """
     Синхронизирует одну локально смонтированную сетевую папку с локальной директорией.
 
@@ -30,7 +27,7 @@ def sync_folder(
     :param source_path: Путь к исходной (сетевой) папке
     :param dest_root: Корневая папка назначения
     :param dry_run: Только логика без копирования (режим симуляции)
-    :return: (список изменённых файлов, статистика по операциям)
+    :return: (список изменённых файлов с пометками, статистика по операциям)
     """
     source = Path(source_path)
     destination = Path(dest_root) / name
@@ -40,7 +37,7 @@ def sync_folder(
         return [], {"added": 0, "modified": 0, "copied": 0}
 
     stats = {"added": 0, "modified": 0, "copied": 0}
-    changed_files: List[str] = []
+    changed_files: List[Tuple[str, str]] = []
 
     for src_file in list_files(source):
         try:
@@ -53,18 +50,18 @@ def sync_folder(
                     copy2(src_file, dest_file)
                 stats["added"] += 1
                 stats["copied"] += 1
-                changed_files.append(str(relative_path))
+                changed_files.append((str(relative_path), "added"))
                 logger.debug(f"➕ Добавлен: {relative_path}")
             else:
                 src_hash = calculate_hash(src_file)
                 dest_hash = calculate_hash(dest_file)
 
-                if src_hash != dest_hash:
+                if src_hash and dest_hash and src_hash != dest_hash:
                     if not dry_run:
                         copy2(src_file, dest_file)
                     stats["modified"] += 1
                     stats["copied"] += 1
-                    changed_files.append(str(relative_path))
+                    changed_files.append((str(relative_path), "modified"))
                     logger.debug(f"✏️ Обновлен: {relative_path}")
         except Exception as e:
             logger.error(f"❌ Ошибка при обработке файла {src_file}: {e}")
