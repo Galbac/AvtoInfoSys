@@ -2,29 +2,35 @@ import yaml
 from pathlib import Path
 from typing import Any, Dict
 
+from app.utils import CONFIG_PATHS
+
 
 class ConfigError(Exception):
     """Исключение, выбрасываемое при ошибках конфигурации."""
     pass
 
 
-def load_config(path: str = "config.yaml") -> Dict[str, Any]:
-    """Загружает и валидирует YAML-файл конфигурации."""
-    config_path = Path(path)
-    if not config_path.is_file():
-        raise ConfigError(f"❌ Файл конфигурации не найден: {config_path}")
+def load_config(config_path: str = "") -> dict:
+    search_paths = [Path(config_path)] if config_path else CONFIG_PATHS
 
-    try:
-        with config_path.open("r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-    except yaml.YAMLError as e:
-        raise ConfigError(f"❌ Ошибка разбора YAML: {e}")
+    for path in search_paths:
+        if path.exists():
+            try:
+                with path.open("r", encoding="utf-8") as f:
+                    config = yaml.safe_load(f) or {}
+                    # Совместимость: если указана только одна папка
+                    if "destination" in config:
+                        dest = config["destination"]
+                        if "path" in dest and "paths" not in dest:
+                            dest["paths"] = [dest["path"]]
+                    return config
+            except yaml.YAMLError as e:
+                print(f"❌ Ошибка при разборе YAML-файла: {e}")
+                return {}
 
-    if not isinstance(config, dict):
-        raise ConfigError("❌ Конфигурация должна быть словарём верхнего уровня.")
+    print("❌ Конфигурационный файл config.yaml не найден.")
+    return {}
 
-    validate_config(config)
-    return config
 
 
 def validate_config(config: Dict[str, Any]) -> None:

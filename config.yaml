@@ -1,11 +1,11 @@
 #config.yaml
 
 destination:
-  path: "./synced"
+  paths:
+    - "C:\\Users\\OSATPP IL\\Desktop\\111"
+    - "C:\\Users\\OSATPP IL\\Desktop\\1111"
 
 sources:
-  - name: "Zidan"
-    path: "\\\\KOMP\\Users\\Zidan\\OOP"
   - name: "Abakarov_m"
     path: "\\\\Abakarov_m\\РАБОТА"
   - name: "Israpilov_m"
