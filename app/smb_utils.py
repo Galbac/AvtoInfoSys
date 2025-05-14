@@ -6,13 +6,11 @@ from app.logger import get_logger
 
 logger = get_logger()
 
-
 def list_files(path: Path) -> List[Path]:
     """
     Рекурсивно возвращает список всех файлов в указанной директории.
     """
     return [f for f in path.rglob("*") if f.is_file()]
-
 
 def sync_folder(
     name: str,
@@ -21,6 +19,16 @@ def sync_folder(
     report_path_root: str,
     dry_run: bool = False
 ) -> Tuple[List[Tuple[str, str]], Dict[str, int]]:
+    """
+    Синхронизирует одну локально смонтированную сетевую папку с локальной директорией.
+
+    :param name: Название группы/пользователя (используется как подпапка)
+    :param source_path: Путь к исходной (сетевой) папке
+    :param dest_paths: Список путей назначения
+    :param report_path_root: Путь для отчёта (первый путь из списка назначения)
+    :param dry_run: Только логика без копирования (режим симуляции)
+    :return: (список изменённых файлов с пометками, статистика по операциям)
+    """
     source = Path(source_path)
     report_root = Path(report_path_root) / name if report_path_root else None
     dest_dirs = [Path(p) / name for p in dest_paths]
