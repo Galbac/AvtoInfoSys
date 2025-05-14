@@ -17,20 +17,13 @@ def list_files(path: Path) -> List[Path]:
 def sync_folder(
     name: str,
     source_path: str,
-    dest_root: str,
+    dest_paths: list[str],
+    report_path_root: str,
     dry_run: bool = False
 ) -> Tuple[List[Tuple[str, str]], Dict[str, int]]:
-    """
-    Синхронизирует одну локально смонтированную сетевую папку с локальной директорией.
-
-    :param name: Название группы/пользователя (используется как подпапка)
-    :param source_path: Путь к исходной (сетевой) папке
-    :param dest_root: Корневая папка назначения
-    :param dry_run: Только логика без копирования (режим симуляции)
-    :return: (список изменённых файлов с пометками, статистика по операциям)
-    """
     source = Path(source_path)
-    destination = Path(dest_root) / name
+    report_root = Path(report_path_root) / name if report_path_root else None
+    dest_dirs = [Path(p) / name for p in dest_paths]
 
     if not source.exists():
         logger.warning(f"⚠️ Источник не найден: {source}")
@@ -42,23 +35,28 @@ def sync_folder(
     for src_file in list_files(source):
         try:
             relative_path = src_file.relative_to(source)
-            dest_file = destination / relative_path
+            target_files = [d / relative_path for d in dest_dirs]
 
-            if not dest_file.exists():
+            # Выбираем первый для сравнения и отчета
+            main_target = report_root / relative_path if report_root else target_files[0]
+
+            if not main_target.exists():
                 if not dry_run:
-                    dest_file.parent.mkdir(parents=True, exist_ok=True)
-                    copy2(src_file, dest_file)
+                    for dest_file in target_files:
+                        dest_file.parent.mkdir(parents=True, exist_ok=True)
+                        copy2(src_file, dest_file)
                 stats["added"] += 1
                 stats["copied"] += 1
                 changed_files.append((str(relative_path), "added"))
                 logger.debug(f"➕ Добавлен: {relative_path}")
             else:
                 src_hash = calculate_hash(src_file)
-                dest_hash = calculate_hash(dest_file)
+                dest_hash = calculate_hash(main_target)
 
                 if src_hash and dest_hash and src_hash != dest_hash:
                     if not dry_run:
-                        copy2(src_file, dest_file)
+                        for dest_file in target_files:
+                            copy2(src_file, dest_file)
                     stats["modified"] += 1
                     stats["copied"] += 1
                     changed_files.append((str(relative_path), "modified"))
