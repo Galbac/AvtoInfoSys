@@ -14,19 +14,18 @@ logger = get_logger()
 def sync_one_folder(
     name: str,
     network_path: str,
-    destination_root: str,
+    destination_paths: list[str],
+    report_path_root: str,
     dry_run: bool
 ) -> Tuple[str, List[str], Dict[str, int]]:
-    """
-    Синхронизирует одну сетевую папку.
-    """
     logger.info(f"🔍 Сканируем папку: {name}")
     try:
-        result, stats = sync_folder(name, network_path, destination_root, dry_run)
+        result, stats = sync_folder(name, network_path, destination_paths, report_path_root, dry_run)
         return name, result, stats
     except Exception as e:
         logger.exception(f"❌ Ошибка при синхронизации {name}: {e}")
         return name, [], {"added": 0, "modified": 0, "copied": 0}
+
 
 
 def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
