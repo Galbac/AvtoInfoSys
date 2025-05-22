@@ -6,7 +6,7 @@ from app.logger import get_logger
 from app.config_loader import load_config
 from app.reporter import save_html_report
 from app.telegram_notify import send_report_file_to_telegram
-from app.smb_utils import sync_one_folder
+
 
 logger = get_logger()
 
@@ -22,6 +22,7 @@ def sync_one_folder(
     """
     logger.info(f"🔍 Сканируем папку: {name}")
     try:
+        from app.smb_utils import sync_folder
         result, stats = sync_folder(name, network_path, destination_paths, report_path_root, dry_run)
         return name, result, stats
     except Exception as e:

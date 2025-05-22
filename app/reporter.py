@@ -30,12 +30,21 @@ def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
                         border-bottom: 2px solid #ccc;
                         padding-bottom: 5px;
                     }
-                    h3 {
-                        color: #34495e;
-                        margin-top: 30px;
+                    details {
+                        background-color: #f0f4f8;
+                        border: 1px solid #ccc;
+                        border-radius: 6px;
+                        padding: 10px 15px;
+                        margin-bottom: 20px;
                     }
-                    p {
-                        margin: 10px 0;
+                    summary {
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-size: 16px;
+                        color: #2d3436;
+                    }
+                    summary:hover {
+                        color: #0984e3;
                     }
                     ul {
                         list-style-type: disc;
@@ -43,6 +52,9 @@ def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
                     }
                     li {
                         margin: 5px 0;
+                    }
+                    p {
+                        margin: 10px 0;
                     }
                     .stats {
                         background-color: #ecf0f1;
@@ -70,37 +82,44 @@ def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
             with tag("h2"):
                 text(f"Отчет синхронизации — {report_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
 
+            # Для каждого имени (например, "Сапарбегов", "Исрпилов") генерируем раздел с данными
             for name, files in results_by_name.items():
                 added = [f for f, status in files if status == "added"]
                 modified = [f for f, status in files if status == "modified"]
+                copied = [f for f, status in files if status == "copied"]
                 stats = stats_by_name.get(name, {"added": 0, "modified": 0, "copied": 0})
 
                 total_added += stats["added"]
                 total_modified += stats["modified"]
                 total_copied += stats["copied"]
 
-                with tag("h3"):
-                    text(name)
+                with tag("details"):
+                    with tag("summary"):
+                        text(f"{name} — Добавлено: {stats['added']} | Изменено: {stats['modified']} | Скопировано: {stats['copied']}")
 
-                with tag("p"):
-                    text("Добавлено:" if added else "Нет добавленных файлов.")
-                if added:
-                    with tag("ul"):
-                        for f in added:
-                            with tag("li"):
-                                text(f)
+                    if added:
+                        with tag("p"):
+                            text("Добавленные файлы:")
+                        with tag("ul"):
+                            for f in added:
+                                with tag("li"):
+                                    text(f)
+                    else:
+                        with tag("p"):
+                            text("Нет добавленных файлов.")
 
-                with tag("p"):
-                    text("Изменено:" if modified else "Нет изменённых файлов.")
-                if modified:
-                    with tag("ul"):
-                        for f in modified:
-                            with tag("li"):
-                                text(f)
+                    if modified:
+                        with tag("p"):
+                            text("Изменённые файлы:")
+                        with tag("ul"):
+                            for f in modified:
+                                with tag("li"):
+                                    text(f)
+                    else:
+                        with tag("p"):
+                            text("Нет изменённых файлов.")
 
-                with tag("p", klass="stats"):
-                    text(f"Добавлено: {stats['added']} | Изменено: {stats['modified']} | Скопировано: {stats['copied']}")
-
+            # Общий итог
             with tag("div", klass="summary"):
                 with tag("div", klass="icon"):
                     text("📊")
@@ -127,7 +146,7 @@ def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
     report_path.write_text(html, encoding="utf-8")
 
     # Обновить index.html
-    update_index_html(base_dir, all_dates_dir)
+    update_index_html(base_dir, all_dates_dir, latest_report_path=report_path)
 
     return report_path
 
@@ -200,21 +219,3 @@ def update_index_html(base_dir: Path, all_dates_dir: Path, latest_report_path: P
 
     index_html = doc.getvalue()
     index_path.write_text(index_html, encoding="utf-8")
-
-
-
-
-# 🔽 Пример запуска
-if __name__ == "__main__":
-    # Пример данных
-    example_results = {
-        "Проект А": [("file1.txt", "added"), ("file2.txt", "modified")],
-        "Проект Б": [("doc1.docx", "added")]
-    }
-    example_stats = {
-        "Проект А": {"added": 1, "modified": 1, "copied": 0},
-        "Проект Б": {"added": 1, "modified": 0, "copied": 0}
-    }
-    now = datetime.now()
-
-    save_html_report(example_results, example_stats, now)
