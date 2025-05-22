@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any
+from app.logger import get_logger
+
+logger = get_logger()
 
 DB_FILE = Path("synced_db.json")
 
@@ -12,6 +15,7 @@ def load_state() -> Dict[str, Dict[str, str]]:
     :return: Словарь вида {папка: {путь_файла: хеш}}.
     """
     if not DB_FILE.exists():
+        logger.info(f"ℹ️ Файл состояния не найден: {DB_FILE}, возвращаем пустой словарь.")
         return {}
 
     try:
@@ -20,10 +24,10 @@ def load_state() -> Dict[str, Dict[str, str]]:
             if isinstance(data, dict):
                 return data
             else:
-                print(f"[WARN] Неверный формат данных в {DB_FILE}, ожидается словарь.")
+                logger.warning(f"⚠️ Неверный формат данных в {DB_FILE}, ожидается словарь.")
                 return {}
     except (json.JSONDecodeError, OSError) as e:
-        print(f"[WARN] Не удалось загрузить состояние из {DB_FILE}: {e}")
+        logger.warning(f"⚠️ Не удалось загрузить состояние из {DB_FILE}: {e}")
         return {}
 
 
@@ -36,5 +40,6 @@ def save_state(data: Dict[str, Dict[str, str]]) -> None:
     try:
         with DB_FILE.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f"✅ Состояние успешно сохранено в {DB_FILE}")
     except OSError as e:
-        print(f"[ERROR] Не удалось сохранить состояние в {DB_FILE}: {e}")
+        logger.error(f"❌ Не удалось сохранить состояние в {DB_FILE}: {e}")

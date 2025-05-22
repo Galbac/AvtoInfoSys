@@ -26,7 +26,9 @@ def calculate_hash(file_path: Path) -> Optional[str]:
         with file_path.open("rb") as f:
             for chunk in iter(lambda: f.read(65536), b""):
                 hasher.update(chunk)
-        return hasher.hexdigest()
+        hash_hex = hasher.hexdigest()
+        logger.debug(f"✅ Вычислен хеш для {file_path}: {hash_hex}")
+        return hash_hex
     except Exception as e:
         logger.error(f"❌ Ошибка при чтении файла {file_path}: {e}")
         return None

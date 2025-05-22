@@ -1,8 +1,10 @@
 import yaml
 from pathlib import Path
 from typing import Any, Dict
-
 from app.utils import CONFIG_PATHS
+from app.logger import get_logger
+
+logger = get_logger()
 
 
 class ConfigError(Exception):
@@ -11,6 +13,12 @@ class ConfigError(Exception):
 
 
 def load_config(config_path: str = "") -> dict:
+    """
+    Загружает конфигурацию из YAML-файла.
+    Приоритет: переданный путь → стандартные пути из CONFIG_PATHS.
+
+    Автоматически приводит 'destination.path' к списку 'destination.paths' для совместимости.
+    """
     search_paths = [Path(config_path)] if config_path else CONFIG_PATHS
 
     for path in search_paths:
@@ -18,23 +26,29 @@ def load_config(config_path: str = "") -> dict:
             try:
                 with path.open("r", encoding="utf-8") as f:
                     config = yaml.safe_load(f) or {}
-                    # Совместимость: если указана только одна папка
-                    if "destination" in config:
-                        dest = config["destination"]
-                        if "path" in dest and "paths" not in dest:
-                            dest["paths"] = [dest["path"]]
-                    return config
+                # Совместимость: если указана только одна папка в destination
+                dest = config.get("destination")
+                if dest and isinstance(dest, dict):
+                    if "path" in dest and "paths" not in dest:
+                        dest["paths"] = [dest["path"]]
+                logger.info(f"✅ Конфигурация загружена из {path}")
+                return config
             except yaml.YAMLError as e:
-                print(f"❌ Ошибка при разборе YAML-файла: {e}")
+                logger.error(f"❌ Ошибка при разборе YAML-файла {path}: {e}")
+                return {}
+            except Exception as e:
+                logger.error(f"❌ Неожиданная ошибка при загрузке конфигурации {path}: {e}")
                 return {}
 
-    print("❌ Конфигурационный файл config.yaml не найден.")
+    logger.error("❌ Конфигурационный файл config.yaml не найден в стандартных путях.")
     return {}
 
 
-
 def validate_config(config: Dict[str, Any]) -> None:
-    """Проверяет структуру конфигурационного словаря."""
+    """
+    Проверяет структуру конфигурационного словаря.
+    Выбрасывает ConfigError при ошибках.
+    """
     sources = config.get("sources")
     if not isinstance(sources, list) or not sources:
         raise ConfigError("❌ В конфигурации должен быть непустой список 'sources'.")
@@ -61,3 +75,5 @@ def validate_config(config: Dict[str, Any]) -> None:
             raise ConfigError("❌ 'telegram' должен быть словарём.")
         if not telegram.get("token") or not telegram.get("chat_id"):
             raise ConfigError("❌ В 'telegram' должны быть указаны 'token' и 'chat_id'.")
+
+    logger.info("✅ Конфигурация успешно прошла валидацию.")

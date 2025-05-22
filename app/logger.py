@@ -14,7 +14,7 @@ def get_logger(name: str = "sync_logger") -> logging.Logger:
     """
     logger = logging.getLogger(name)
 
-    if hasattr(logger, "_initialized") and logger._initialized:
+    if getattr(logger, "_initialized", False):
         return logger
 
     logger.setLevel(logging.INFO)
@@ -33,5 +33,5 @@ def get_logger(name: str = "sync_logger") -> logging.Logger:
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
-    logger._initialized = True  # пользовательский флаг, чтобы не добавлять хендлеры повторно
+    logger._initialized = True  # флаг, чтобы избежать повторного добавления хендлеров
     return logger

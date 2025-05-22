@@ -1,9 +1,10 @@
 import json
 import os
+from pathlib import Path
 
 import yaml
 from dotenv import load_dotenv
-from pathlib import Path
+
 from app.logger import get_logger
 
 load_dotenv()
@@ -26,17 +27,18 @@ def load_config(config_path: str = "") -> dict:
             try:
                 with path.open("r", encoding="utf-8") as f:
                     config = yaml.safe_load(f) or {}
+                    logger.info(f"✅ Загружена конфигурация из {path}")
                     return config
             except yaml.YAMLError as e:
-                print(f"❌ Ошибка при разборе YAML-файла: {e}")
+                logger.error(f"❌ Ошибка при разборе YAML-файла {path}: {e}")
                 return {}
 
-    print("❌ Конфигурационный файл config.yaml не найден.")
+    logger.error("❌ Конфигурационный файл config.yaml не найден.")
     return {}
 
 
 def load_recipients() -> list[int]:
-    users_file = os.getenv("USERS_FILE", "./users.json")
+    users_file = os.getenv("USERS_FILE", str(RECIPIENTS_FILE))
 
     try:
         with open(users_file, "r", encoding="utf-8") as f:
@@ -46,6 +48,7 @@ def load_recipients() -> list[int]:
             logger.error(f"❌ Неверный формат файла {users_file}. Ожидается список целых чисел.")
             return []
 
+        logger.info(f"✅ Загружено {len(users)} пользователей из {users_file}")
         return users
 
     except FileNotFoundError:
@@ -65,13 +68,15 @@ def save_recipient(user_id: int) -> bool:
     """
     recipients = load_recipients()
     if user_id in recipients:
+        logger.info(f"ℹ️ Пользователь {user_id} уже есть в списке")
         return False
 
     recipients.append(user_id)
     try:
         with RECIPIENTS_FILE.open("w", encoding="utf-8") as f:
             json.dump(recipients, f, ensure_ascii=False, indent=2)
+        logger.info(f"✅ Пользователь {user_id} добавлен в список")
         return True
     except IOError as e:
-        print(f"❌ Ошибка при сохранении users.json: {e}")
+        logger.error(f"❌ Ошибка при сохранении {RECIPIENTS_FILE}: {e}")
         return False

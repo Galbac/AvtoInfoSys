@@ -13,25 +13,33 @@ logger = get_logger()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 _lock = Lock()
 
-
-def is_internet_available(url="https://api.telegram.org", timeout=3) -> bool:
+def is_internet_available(url: str = "https://api.telegram.org", timeout: int = 3) -> bool:
+    """Проверяет доступность интернета по URL с таймаутом."""
     try:
         response = requests.get(url, timeout=timeout)
+        # 200 OK и 404 Not Found считаем как доступность API Telegram
         return response.status_code in (200, 404)
     except requests.RequestException:
         return False
 
 
 def send_to_user(user_id: int, content: str, user_ids: list[int], is_file: bool = False) -> bool:
+    """
+    Отправляет сообщение или файл пользователю через Telegram Bot API.
+    При ошибке 403 удаляет пользователя из списка user_ids.
+
+    :param user_id: ID пользователя Telegram
+    :param content: текст сообщения или путь к файлу
+    :param user_ids: общий список пользователей для обновления при блокировке
+    :param is_file: если True, отправляется файл
+    :return: True при успешной отправке, иначе False
+    """
     if not BOT_TOKEN:
         logger.error("❌ BOT_TOKEN не найден в .env файле.")
         return False
 
-    url = (
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
-        if is_file else
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    )
+    base_url = f"https://api.telegram.org/bot{BOT_TOKEN}"
+    url = f"{base_url}/sendDocument" if is_file else f"{base_url}/sendMessage"
 
     data = {"chat_id": user_id}
     files = None
@@ -40,10 +48,10 @@ def send_to_user(user_id: int, content: str, user_ids: list[int], is_file: bool 
         if is_file:
             with open(content, "rb") as file:
                 files = {"document": file}
-                response = requests.post(url, data=data, files=files)
+                response = requests.post(url, data=data, files=files, timeout=10)
         else:
             data["text"] = content
-            response = requests.post(url, data=data)
+            response = requests.post(url, data=data, timeout=10)
     except Exception as e:
         logger.error(f"❌ Ошибка при отправке {'файла' if is_file else 'сообщения'} пользователю {user_id}: {e}")
         return False
@@ -61,8 +69,11 @@ def send_to_user(user_id: int, content: str, user_ids: list[int], is_file: bool 
         return False
 
 
-
 def send_summary_to_telegram(all_results, all_stats, dry_run: bool = False) -> None:
+    """
+    Отправляет итоговое текстовое сообщение всем получателям из списка.
+    Использует пул потоков для параллельной отправки.
+    """
     if not BOT_TOKEN:
         logger.error("❌ BOT_TOKEN не найден в .env файле.")
         return
@@ -79,11 +90,16 @@ def send_summary_to_telegram(all_results, all_stats, dry_run: bool = False) -> N
     logger.info(f"📤 Отправка итогового сообщения ({len(user_ids)} пользователей)...")
 
     with ThreadPoolExecutor(max_workers=min(len(user_ids), 30)) as executor:
+        # Используем копию списка, т.к. он может изменяться в send_to_user
         for user_id in user_ids.copy():
             executor.submit(send_to_user, user_id, message, user_ids, is_file=False)
 
 
 def send_report_file_to_telegram(report_path: str) -> bool:
+    """
+    Отправляет файл отчёта всем получателям.
+    Возвращает True, если хотя бы одна отправка успешна.
+    """
     if not BOT_TOKEN:
         logger.error("❌ BOT_TOKEN не найден в .env файле.")
         return False

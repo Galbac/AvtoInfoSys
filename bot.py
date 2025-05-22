@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import Message
+from aiogram.exceptions import TelegramAPIError
 
 from app.utils import save_recipient, load_recipients
 
@@ -21,26 +22,39 @@ dp = Dispatcher()
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message):
     user_id = message.from_user.id
-    if save_recipient(user_id):
-        await message.answer("✅ Вы добавлены в список получателей уведомлений.")
-    else:
-        await message.answer("ℹ️ Вы уже есть в списке получателей уведомлений.")
+    try:
+        added = save_recipient(user_id)
+        if added:
+            await message.answer("✅ Вы добавлены в список получателей уведомлений.")
+        else:
+            await message.answer("ℹ️ Вы уже есть в списке получателей уведомлений.")
+    except Exception as e:
+        await message.answer("❌ Произошла ошибка при сохранении ваших данных.")
+        # Можно добавить логирование ошибки здесь, если есть логгер
+        print(f"Error saving recipient {user_id}: {e}")
 
 
 @dp.message(F.text == "/users")
 async def cmd_users(message: Message):
-    users = load_recipients()
-    if users:
-        lines = "\n".join(f"• <code>{uid}</code>" for uid in users)
-        text = f"<b>Зарегистрированные пользователи:</b>\n{lines}"
-    else:
-        text = "Список получателей пуст."
-    await message.answer(text)
+    try:
+        users = load_recipients()
+        if users:
+            lines = "\n".join(f"• <code>{uid}</code>" for uid in users)
+            text = f"<b>Зарегистрированные пользователи:</b>\n{lines}"
+        else:
+            text = "Список получателей пуст."
+        await message.answer(text)
+    except Exception as e:
+        await message.answer("❌ Не удалось загрузить список пользователей.")
+        print(f"Error loading recipients: {e}")
 
 
 async def main():
     print("🤖 Бот запущен и ожидает команды...")
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
 
 
 if __name__ == "__main__":
