@@ -8,5 +8,7 @@ destination:
 sources:
   - name: "Abakarov_m"
     path: "\\\\Abakarov_m\\РАБОТА"
+    buro: "БП"
   - name: "Israpilov_m"
     path: "\\\\desktop-hshsuuu\\Работа"
+    buro: "ТБ"

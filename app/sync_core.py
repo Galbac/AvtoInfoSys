@@ -7,7 +7,6 @@ from app.config_loader import load_config
 from app.reporter import save_html_report
 from app.telegram_notify import send_report_file_to_telegram
 
-
 logger = get_logger()
 
 def sync_one_folder(
@@ -16,23 +15,45 @@ def sync_one_folder(
     destination_paths: list[str],
     report_path_root: str,
     dry_run: bool
-) -> Tuple[str, List[str], Dict[str, int]]:
+) -> Tuple[str, List[Tuple[str, str]], Dict[str, int]]:
     """
     Синхронизирует одну сетевую папку.
+    Возвращает: (имя пользователя, список (файл, статус), статистику)
     """
     logger.info(f"🔍 Сканируем папку: {name}")
     try:
         from app.smb_utils import sync_folder
         result, stats = sync_folder(name, network_path, destination_paths, report_path_root, dry_run)
+        # result — должен быть List[Tuple[str, str]], где str — имя файла, str — статус ("added"/"modified" и т.п.)
         return name, result, stats
     except Exception as e:
         logger.exception(f"❌ Ошибка при синхронизации {name}: {e}")
         return name, [], {"added": 0, "modified": 0, "copied": 0}
 
+def prepare_results_by_bureau(
+    all_results: Dict[str, List[Tuple[str, str]]],
+    all_stats: Dict[str, Dict[str, int]],
+    sources: List[Dict]
+) -> Tuple[Dict[str, Dict[str, List[Tuple[str, str]]]], Dict[str, Dict[str, Dict[str, int]]]]:
+    results_by_bureau = {}
+    stats_by_bureau = {}
+
+    # У каждого source есть 'name' и 'buro'
+    for source in sources:
+        name = source.get("name")
+        buro = source.get("buro", "Без бюро")
+
+        # Инициализируем словари, если нужно
+        if buro not in results_by_bureau:
+            results_by_bureau[buro] = {}
+            stats_by_bureau[buro] = {}
+
+        results_by_bureau[buro][name] = all_results.get(name, [])
+        stats_by_bureau[buro][name] = all_stats.get(name, {"added": 0, "modified": 0, "copied": 0})
+
+    return results_by_bureau, stats_by_bureau
+
 def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
-    """
-    Запускает синхронизацию всех папок, указанных в конфигурации.
-    """
     logger.info("🚀 Запуск синхронизации...")
 
     config = load_config(config_path)
@@ -41,16 +62,14 @@ def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
     if isinstance(destination_paths, str):
         destination_paths = [destination_paths]
 
-    # Первый путь для отчета
     report_path_root = destination_paths[0] if destination_paths else None
-
     sources = config.get("sources", [])
 
     if not destination_paths or not sources:
         logger.error("❌ Конфигурация неполная: отсутствует 'destination.paths' или список 'sources'")
         return
 
-    all_results: Dict[str, List[str]] = {}
+    all_results: Dict[str, List[Tuple[str, str]]] = {}
     all_stats: Dict[str, Dict[str, int]] = {}
 
     with ThreadPoolExecutor() as executor:
@@ -70,8 +89,11 @@ def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
             except Exception as e:
                 logger.exception(f"❌ Ошибка при обработке папки {name}: {e}")
 
+    # Подготовка данных к структуре по бюро
+    results_by_bureau, stats_by_bureau = prepare_results_by_bureau(all_results, all_stats, sources)
+
     report_datetime = datetime.now()
-    report_path = save_html_report(all_results, all_stats, report_datetime)
+    report_path = save_html_report(results_by_bureau, stats_by_bureau, report_datetime)
 
     try:
         send_report_file_to_telegram(report_path)

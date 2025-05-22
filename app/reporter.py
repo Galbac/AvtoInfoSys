@@ -4,12 +4,10 @@ from yattag import Doc
 from typing import Dict, List, Tuple
 
 
-def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
-                     stats_by_name: Dict[str, Dict[str, int]],
+def save_html_report(results_by_bureau: Dict[str, Dict[str, List[Tuple[str, str]]]],
+                     stats_by_bureau: Dict[str, Dict[str, Dict[str, int]]],
                      report_datetime: datetime) -> Path:
     doc, tag, text = Doc().tagtext()
-
-    total_added = total_modified = total_copied = 0
 
     doc.asis("<!DOCTYPE html>")
     with tag("html"):
@@ -63,74 +61,67 @@ def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
                         margin-top: 10px;
                         font-weight: bold;
                     }
-                    .summary {
-                        background-color: #dfe6e9;
-                        padding: 15px;
-                        margin-top: 40px;
-                        border: 2px solid #b2bec3;
-                        border-radius: 8px;
-                        text-align: center;
-                        font-size: 16px;
-                    }
-                    .icon {
-                        font-size: 40px;
-                        margin-bottom: 10px;
-                    }
                 """)
 
         with tag("body"):
             with tag("h2"):
                 text(f"Отчет синхронизации — {report_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
 
-            # Для каждого имени (например, "Сапарбегов", "Исрпилов") генерируем раздел с данными
-            for name, files in results_by_name.items():
-                added = [f for f, status in files if status == "added"]
-                modified = [f for f, status in files if status == "modified"]
-                copied = [f for f, status in files if status == "copied"]
-                stats = stats_by_name.get(name, {"added": 0, "modified": 0, "copied": 0})
+            grand_total_added = 0
+            grand_total_modified = 0
 
-                total_added += stats["added"]
-                total_modified += stats["modified"]
-                total_copied += stats["copied"]
+            for bureau, results_by_name in results_by_bureau.items():
+                total_added = 0
+                total_modified = 0
+
+                # Считаем общее количество изменений в бюро
+                for name, files in results_by_name.items():
+                    stats = stats_by_bureau.get(bureau, {}).get(name, {"added": 0, "modified": 0, "copied": 0})
+                    total_added += stats.get("added", 0)
+                    total_modified += stats.get("modified", 0)
+
+                grand_total_added += total_added
+                grand_total_modified += total_modified
+
+                change_count = total_added + total_modified
 
                 with tag("details"):
                     with tag("summary"):
-                        text(f"{name} — Добавлено: {stats['added']} | Изменено: {stats['modified']} | Скопировано: {stats['copied']}")
+                        text(f"{bureau} - ({change_count})")
 
-                    if added:
-                        with tag("p"):
-                            text("Добавленные файлы:")
-                        with tag("ul"):
-                            for f in added:
-                                with tag("li"):
-                                    text(f)
-                    else:
-                        with tag("p"):
-                            text("Нет добавленных файлов.")
+                    for name, files in results_by_name.items():
+                        added = [f for f, status in files if status == "added"]
+                        modified = [f for f, status in files if status == "modified"]
+                        stats = stats_by_bureau.get(bureau, {}).get(name, {"added": 0, "modified": 0, "copied": 0})
 
-                    if modified:
-                        with tag("p"):
-                            text("Изменённые файлы:")
-                        with tag("ul"):
-                            for f in modified:
-                                with tag("li"):
-                                    text(f)
-                    else:
-                        with tag("p"):
-                            text("Нет изменённых файлов.")
+                        with tag("details"):
+                            with tag("summary"):
+                                text(f"{name} — Добавлено: {stats['added']} | Изменено: {stats['modified']} | Скопировано: {stats['copied']}")
 
-            # Общий итог
-            with tag("div", klass="summary"):
-                with tag("div", klass="icon"):
-                    text("📊")
-                with tag("strong"):
-                    text("Общий итог")
-                with tag("p"):
-                    text(f"Всего добавлено: {total_added}")
-                with tag("p"):
-                    text(f"Всего изменено: {total_modified}")
-                with tag("p"):
-                    text(f"Всего скопировано: {total_copied}")
+                            if added:
+                                with tag("p"):
+                                    text("Добавленные файлы:")
+                                with tag("ul"):
+                                    for f in added:
+                                        with tag("li"):
+                                            text(f)
+                            else:
+                                with tag("p"):
+                                    text("Нет добавленных файлов.")
+
+                            if modified:
+                                with tag("p"):
+                                    text("Изменённые файлы:")
+                                with tag("ul"):
+                                    for f in modified:
+                                        with tag("li"):
+                                            text(f)
+                            else:
+                                with tag("p"):
+                                    text("Нет изменённых файлов.")
+
+            with tag("div", klass="stats"):
+                text(f"Общий итог по всем бюро — Добавлено: {grand_total_added}, Изменено: {grand_total_modified}")
 
     html = doc.getvalue()
     date_str = report_datetime.strftime("%Y-%m-%d")
@@ -145,7 +136,7 @@ def save_html_report(results_by_name: Dict[str, List[Tuple[str, str]]],
     report_path = report_dir / report_filename
     report_path.write_text(html, encoding="utf-8")
 
-    # Обновить index.html
+    # Обновляем историю отчетов после создания нового отчёта
     update_index_html(base_dir, all_dates_dir, latest_report_path=report_path)
 
     return report_path
@@ -155,16 +146,15 @@ def update_index_html(base_dir: Path, all_dates_dir: Path, latest_report_path: P
     index_path = base_dir / "Отчет.html"
     links = []
 
-    # Собираем все отчеты, начиная с самых новых
-    for date_dir in sorted(all_dates_dir.iterdir(), reverse=True):
-        if date_dir.is_dir():
-            for report_file in sorted(date_dir.glob("Отчет_*.html"), reverse=True):
-                rel_path = Path("Все даты") / date_dir.name / report_file.name
-                display_name = report_file.stem.replace("Отчет_", "").replace("_", " ")
-                is_latest = (latest_report_path is not None and report_file.resolve() == latest_report_path.resolve())
-                links.append((display_name, str(rel_path).replace("\\", "/"), is_latest))
+    if all_dates_dir.exists():
+        for date_dir in sorted(all_dates_dir.iterdir(), reverse=True):
+            if date_dir.is_dir():
+                for report_file in sorted(date_dir.glob("Отчет_*.html"), reverse=True):
+                    rel_path = Path("Все даты") / date_dir.name / report_file.name
+                    display_name = report_file.stem.replace("Отчет_", "").replace("_", " ")
+                    is_latest = (latest_report_path is not None and report_file.resolve() == latest_report_path.resolve())
+                    links.append((display_name, str(rel_path).replace("\\", "/"), is_latest))
 
-    # Генерация HTML
     doc, tag, text = Doc().tagtext()
     doc.asis("<!DOCTYPE html>")
     with tag("html"):
