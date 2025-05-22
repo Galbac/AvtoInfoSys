@@ -22,10 +22,10 @@ def is_internet_available(url="https://api.telegram.org", timeout=3) -> bool:
         return False
 
 
-def send_to_user(user_id: int, content: str, user_ids: list[int], is_file: bool = False) -> None:
+def send_to_user(user_id: int, content: str, user_ids: list[int], is_file: bool = False) -> bool:
     if not BOT_TOKEN:
         logger.error("❌ BOT_TOKEN не найден в .env файле.")
-        return
+        return False
 
     url = (
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
@@ -46,10 +46,11 @@ def send_to_user(user_id: int, content: str, user_ids: list[int], is_file: bool 
             response = requests.post(url, data=data)
     except Exception as e:
         logger.error(f"❌ Ошибка при отправке {'файла' if is_file else 'сообщения'} пользователю {user_id}: {e}")
-        return
+        return False
 
     if response.ok:
         logger.info(f"📤 {'Отчет' if is_file else 'Сообщение'} отправлен пользователю {user_id}")
+        return True
     else:
         logger.error(f"❌ Ответ Telegram: {response.status_code} {response.text}")
         if response.status_code == 403:
@@ -57,6 +58,8 @@ def send_to_user(user_id: int, content: str, user_ids: list[int], is_file: bool 
                 if user_id in user_ids:
                     user_ids.remove(user_id)
                     logger.warning(f"🚫 Пользователь {user_id} удалён из списка (заблокировал бота)")
+        return False
+
 
 
 def send_summary_to_telegram(all_results, all_stats, dry_run: bool = False) -> None:
@@ -80,21 +83,33 @@ def send_summary_to_telegram(all_results, all_stats, dry_run: bool = False) -> N
             executor.submit(send_to_user, user_id, message, user_ids, is_file=False)
 
 
-def send_report_file_to_telegram(report_path: str) -> None:
+def send_report_file_to_telegram(report_path: str) -> bool:
     if not BOT_TOKEN:
         logger.error("❌ BOT_TOKEN не найден в .env файле.")
-        return
+        return False
     if not is_internet_available():
         logger.warning("⚠️ Нет интернета. Пропуск отправки отчета.")
-        return
+        return False
 
     user_ids = load_recipients()
     if not user_ids:
         logger.warning("⚠️ Нет пользователей для отправки.")
-        return
+        return False
 
     logger.info(f"📤 Отправка отчета ({len(user_ids)} пользователей)...")
 
+    success_count = 0
     with ThreadPoolExecutor(max_workers=min(len(user_ids), 30)) as executor:
-        for user_id in user_ids.copy():
+        futures = [
             executor.submit(send_to_user, user_id, report_path, user_ids, is_file=True)
+            for user_id in user_ids.copy()
+        ]
+
+        for future in futures:
+            try:
+                if future.result():
+                    success_count += 1
+            except Exception as e:
+                logger.error(f"❌ Ошибка в потоке отправки: {e}")
+
+    return success_count > 0

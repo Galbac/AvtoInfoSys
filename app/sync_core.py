@@ -53,8 +53,14 @@ def prepare_results_by_bureau(
 
     return results_by_bureau, stats_by_bureau
 
+from app.telegram_notify import send_report_file_to_telegram, is_internet_available
+
 def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
     logger.info("🚀 Запуск синхронизации...")
+
+    internet_available = is_internet_available()
+    if not internet_available:
+        logger.warning("⚠️ Интернет недоступен. Отправка в Telegram будет отключена.")
 
     config = load_config(config_path)
     destination = config.get("destination", {})
@@ -89,16 +95,20 @@ def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
             except Exception as e:
                 logger.exception(f"❌ Ошибка при обработке папки {name}: {e}")
 
-    # Подготовка данных к структуре по бюро
+    # Подготовка данных по бюро
     results_by_bureau, stats_by_bureau = prepare_results_by_bureau(all_results, all_stats, sources)
 
     report_datetime = datetime.now()
     report_path = save_html_report(results_by_bureau, stats_by_bureau, report_datetime)
 
-    try:
-        send_report_file_to_telegram(report_path)
-        logger.info("📤 Отчет отправлен в Telegram")
-    except Exception as e:
-        logger.exception(f"❌ Не удалось отправить отчет в Telegram: {e}")
+    if internet_available:
+        try:
+            send_report_file_to_telegram(report_path)
+            logger.info("📤 Отчет отправлен в Telegram")
+        except Exception as e:
+            logger.exception(f"❌ Не удалось отправить отчет в Telegram: {e}")
+    else:
+        logger.info(f"💾 Интернет недоступен, отчет сохранён локально: {report_path}")
 
     logger.info("✅ Синхронизация завершена")
+
