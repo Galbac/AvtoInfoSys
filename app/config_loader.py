@@ -1,8 +1,10 @@
-import yaml
 from pathlib import Path
 from typing import Any, Dict
-from app.utils import CONFIG_PATHS
+
+import yaml
+
 from app.logger import get_logger
+from app.utils import CONFIG_PATHS
 
 logger = get_logger()
 
