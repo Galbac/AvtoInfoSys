@@ -47,7 +47,7 @@ def sync_one_folder_wrapper(
     source: Dict,
     destination_paths: List[str],
     report_path_root: str,
-    dry_run: bool
+    dry_run: bool = False
 ) -> Tuple[str, List[Tuple[str, str, Dict]], Dict[str, int]]:
     name = source["name"]
     network_path = source["path"]
@@ -55,10 +55,7 @@ def sync_one_folder_wrapper(
     try:
         from app.smb_utils import sync_folder
         result, stats = sync_folder(name, network_path, destination_paths, report_path_root, dry_run)
-        # Сохраняем кэш в фоне
-        from app.database import load_state
-        db = load_state()
-        Thread(target=lambda: save_state_async(db), daemon=True).start()
+        # ✅ sync_folder уже сам сохраняет кэш — ничего больше делать не нужно
         return name, result, stats
     except Exception as e:
         logger.error(f"❌ Ошибка при синхронизации {name}: {e}")
@@ -155,3 +152,4 @@ def start_sync(config_path: str = "config.yaml", dry_run: bool = False) -> None:
     report_path = save_html_report(results_by_bureau, stats_by_bureau, report_datetime)
     logger.info(f"✅ Отчёт сохранён: {report_path}")
     logger.info("✅ Синхронизация завершена (даже при частичных ошибках)")
+
