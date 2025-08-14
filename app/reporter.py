@@ -2,8 +2,8 @@
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
+
 from jinja2 import Template
-import os
 
 REPORT_TEMPLATE = """
 <!DOCTYPE html>
@@ -110,9 +110,11 @@ INDEX_TEMPLATE = """
 </html>
 """
 
+
 class AttrDict(dict):
     def __getattr__(self, item):
         return self[item]
+
 
 def format_size(size) -> str:
     """Форматирует размер файла."""
@@ -126,6 +128,7 @@ def format_size(size) -> str:
     except:
         return "unknown"
 
+
 def format_mtime(mtime) -> str:
     """Форматирует timestamp."""
     try:
@@ -133,10 +136,11 @@ def format_mtime(mtime) -> str:
     except:
         return "unknown"
 
+
 def save_html_report(
-    results_by_bureau: Dict[str, Dict[str, List[Tuple[str, str, Dict]]]],
-    stats_by_bureau: Dict[str, Dict[str, Dict[str, int]]],
-    report_datetime: datetime
+        results_by_bureau: Dict[str, Dict[str, List[Tuple[str, str, Dict]]]],
+        stats_by_bureau: Dict[str, Dict[str, Dict[str, int]]],
+        report_datetime: datetime
 ) -> Path:
     template = Template(REPORT_TEMPLATE)
     # Преобразуем в AttrDict и добавляем функции
@@ -175,6 +179,7 @@ def save_html_report(
 
     update_reports_index()
     return report_path
+
 
 def update_reports_index():
     base_dir = Path.home() / "Desktop" / "Отчет"

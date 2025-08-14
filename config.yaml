@@ -3,7 +3,6 @@
 destination:
   paths:
     - "C:\\Users\\OSATPP IL\\Desktop\\111"
-    - "C:\\Users\\OSATPP IL\\Desktop\\1111"
 
 sources:
   - name: "Abakarov_m"

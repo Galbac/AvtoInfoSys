@@ -1,81 +1,91 @@
+#app/config_loader.py
 from pathlib import Path
 from typing import Any, Dict
-
 import yaml
-
 from app.logger import get_logger
-from app.utils import CONFIG_PATHS
 
 logger = get_logger()
 
-
 class ConfigError(Exception):
-    """Исключение, выбрасываемое при ошибках конфигурации."""
+    """Исключение при ошибках конфигурации."""
     pass
-
 
 def load_config(config_path: str = "") -> dict:
     """
-    Загружает конфигурацию из YAML-файла.
-    Приоритет: переданный путь → стандартные пути из CONFIG_PATHS.
-
-    Автоматически приводит 'destination.path' к списку 'destination.paths' для совместимости.
+    🔹 Загружает YAML-конфиг.
+    - Приоритет: указанный путь → config.yaml → config/config.yaml
+    - Автоматически преобразует `destination.path` → `destination.paths`
+    - Защита от битых/пустых файлов
     """
+    from app.utils import CONFIG_PATHS
     search_paths = [Path(config_path)] if config_path else CONFIG_PATHS
 
     for path in search_paths:
-        if path.exists():
-            try:
-                with path.open("r", encoding="utf-8") as f:
-                    config = yaml.safe_load(f) or {}
-                # Совместимость: если указана только одна папка в destination
-                dest = config.get("destination")
-                if dest and isinstance(dest, dict):
-                    if "path" in dest and "paths" not in dest:
-                        dest["paths"] = [dest["path"]]
-                logger.info(f"✅ Конфигурация загружена из {path}")
-                return config
-            except yaml.YAMLError as e:
-                logger.error(f"❌ Ошибка при разборе YAML-файла {path}: {e}")
-                return {}
-            except Exception as e:
-                logger.error(f"❌ Неожиданная ошибка при загрузке конфигурации {path}: {e}")
+        if not path.exists():
+            continue
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:
+                    logger.warning(f"⚠️ Конфиг-файл пуст: {path}")
+                    return {}
+                config = yaml.safe_load(content)
+            if not isinstance(config, dict):
+                logger.error(f"❌ Некорректный формат YAML: {path}")
                 return {}
 
-    logger.error("❌ Конфигурационный файл config.yaml не найден в стандартных путях.")
+            # Совместимость: один путь → список
+            dest = config.get("destination")
+            if isinstance(dest, dict):
+                if "path" in dest and "paths" not in dest:
+                    dest["paths"] = [dest.pop("path")]  # удаляем старое, добавляем новое
+                if isinstance(dest.get("paths"), str):
+                    dest["paths"] = [dest["paths"]]
+
+            logger.info(f"✅ Конфиг загружен: {path}")
+            return config
+        except yaml.YAMLError as e:
+            logger.error(f"❌ Ошибка парсинга YAML {path}: {e}")
+            return {}
+        except PermissionError:
+            logger.error(f"❌ Нет доступа к файлу: {path}")
+            return {}
+        except Exception as e:
+            logger.error(f"❌ Ошибка при загрузке конфига {path}: {e}")
+            return {}
+
+    logger.error("❌ Конфиг не найден в стандартных путях.")
     return {}
-
 
 def validate_config(config: Dict[str, Any]) -> None:
     """
-    Проверяет структуру конфигурационного словаря.
+    🔹 Проверяет структуру конфига.
     Выбрасывает ConfigError при ошибках.
     """
     sources = config.get("sources")
     if not isinstance(sources, list) or not sources:
-        raise ConfigError("❌ В конфигурации должен быть непустой список 'sources'.")
+        raise ConfigError("❌ 'sources' должен быть непустым списком.")
 
-    for idx, source in enumerate(sources, start=1):
+    for idx, source in enumerate(sources, 1):
         if not isinstance(source, dict):
             raise ConfigError(f"❌ Источник #{idx} должен быть словарём.")
-        if "path" not in source:
-            raise ConfigError(f"❌ Источник #{idx} не содержит ключ 'path'.")
+        if not source.get("name"):
+            raise ConfigError(f"❌ Источник #{idx} не содержит 'name'.")
+        if not source.get("path"):
+            raise ConfigError(f"❌ Источник #{idx} не содержит 'path'.")
+        if not isinstance(source.get("buro", ""), str):
+            raise ConfigError(f"❌ 'buro' у источника #{idx} должен быть строкой.")
         if not isinstance(source.get("mounted", True), bool):
-            raise ConfigError(f"❌ 'mounted' у источника #{idx} должен быть логическим значением.")
+            raise ConfigError(f"❌ 'mounted' у источника #{idx} должен быть bool.")
 
     destination = config.get("destination")
     if not isinstance(destination, dict):
-        raise ConfigError("❌ Блок 'destination' должен быть словарём.")
-    if "path" not in destination:
-        raise ConfigError("❌ В 'destination' должен быть указан 'path'.")
-    if not isinstance(destination.get("mounted", True), bool):
-        raise ConfigError("❌ 'mounted' в 'destination' должен быть логическим значением.")
+        raise ConfigError("❌ 'destination' должен быть словарём.")
+    if not destination.get("paths") or not isinstance(destination["paths"], list) or not destination["paths"]:
+        raise ConfigError("❌ Укажите 'destination.paths' как список путей.")
 
-    telegram = config.get("telegram")
-    if telegram:
-        if not isinstance(telegram, dict):
-            raise ConfigError("❌ 'telegram' должен быть словарём.")
-        if not telegram.get("token") or not telegram.get("chat_id"):
-            raise ConfigError("❌ В 'telegram' должны быть указаны 'token' и 'chat_id'.")
+    for path in destination["paths"]:
+        if not isinstance(path, str) or not path.strip():
+            raise ConfigError(f"❌ Некорректный путь в 'destination.paths': {path}")
 
-    logger.info("✅ Конфигурация успешно прошла валидацию.")
+    logger.info("✅ Конфиг валидирован.")
